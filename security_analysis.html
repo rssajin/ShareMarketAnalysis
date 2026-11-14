@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share Market Analysis – Security Analysis</title>
+  <style>
+    body {font-family: Arial, sans-serif; line-height: 1.6; margin: 2rem; color: #333; background: #fafafa;}
+    h1, h2, h3 {color: #2c3e50;}
+    table {border-collapse: collapse; width: 100%; margin: 1rem 0;}
+    th, td {border: 1px solid #ccc; padding: 0.5rem; text-align: left;}
+    th {background: #eaeaea;}
+    pre {background: #eee; padding: 0.5rem; overflow-x:auto;}
+    ul {margin-left: 1.2rem;}
+    .checklist {list-style: none; padding-left: 0;}
+    .checklist li::before {content: "☐ ";}
+  </style>
+</head>
+<body>
+  <h1>Security Analysis &amp; Recommended Features</h1>
+  <h2>Overview</h2>
+  <p>The Share Market Analysis application is a client‑side web app that fetches market data, performs stock/mutual‑fund scoring, and stores user‑specific data (watch‑list, portfolio) locally or in a future backend.</p>
+
+  <h2>Threat Model</h2>
+  <table>
+    <thead>
+      <tr><th>Asset</th><th>Potential Threat</th><th>Impact</th><th>Likelihood</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Market‑data API keys</td><td>Leakage or abuse</td><td>High (cost, compliance)</td><td>Medium</td></tr>
+      <tr><td>User watch‑list / portfolio data</td><td>Unauthorized access or tampering</td><td>Medium (privacy)</td><td>Low</td></tr>
+      <tr><td>UI input (prompts)</td><td>XSS, injection via malformed data</td><td>High (code execution)</td><td>Low</td></tr>
+      <tr><td>Deployment (Firebase Hosting)</td><td>Mis‑configuration, open bucket</td><td>Medium (data exposure)</td><td>Low</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Required Security Controls</h2>
+  <ol>
+    <li><strong>API Key Protection</strong>
+      <ul>
+        <li>Store any third‑party API keys off‑client (e.g., Firebase Functions or secure backend). Do <em>not</em> embed keys in the static bundle.</li>
+        <li>Use environment variables in CI/CD and Firebase Functions config (<code>functions.config()</code>).</li>
+      </ul>
+    </li>
+    <li><strong>Content Security Policy (CSP)</strong>
+      <p>Add a strict CSP header via <code>firebase.json</code> rewrites or a custom <code>headers</code> section:</p>
+<pre><code>{
+  "source": "**/*.html",
+  "headers": [
+    { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'sha256-…'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" }
+  ]
+}
+</code></pre>
+    </li>
+    <li><strong>Secure Storage of User Data</strong>
+      <ul>
+        <li>Prefer <a href="https://firebase.google.com/docs/firestore">Firebase Firestore</a> with rules that enforce <code>request.auth != null</code> and limit reads/writes to the authenticated user’s UID.</li>
+        <li>If staying fully client‑side, encrypt data in <code>localStorage</code> using a per‑user secret derived from a password.</li>
+      </ul>
+    </li>
+    <li><strong>Input Validation &amp; Sanitisation</strong>
+      <ul>
+        <li>Escape any data rendered into the DOM (e.g., use <a href="https://github.com/cure53/DOMPurify">DOMPurify</a>).</li>
+        <li>Validate API responses against a known schema before using them.</li>
+      </ul>
+    </li>
+    <li><strong>HTTPS Everywhere</strong>
+      <p>Firebase Hosting serves over HTTPS by default; ensure all external calls use <code>https://</code> endpoints.</p>
+    </li>
+    <li><strong>Authentication &amp; Authorization</strong>
+      <ul>
+        <li>Integrate <a href="https://firebase.google.com/docs/auth">Firebase Authentication</a> (email/password, Google, etc.) for user‑specific features.</li>
+        <li>Guard routes on the client and in Firestore rules.</li>
+      </ul>
+    </li>
+    <li><strong>Rate Limiting &amp; Abuse Prevention</strong>
+      <p>If you expose a backend (e.g., Functions) for market‑data fetching, enforce per‑user quotas.</p>
+    </li>
+    <li><strong>Logging &amp; Monitoring</strong>
+      <ul>
+        <li>Enable Firebase Performance Monitoring and Cloud Logging for unusual activity.</li>
+      </ul>
+    </li>
+    <li><strong>Dependency Hygiene</strong>
+      <p>Keep npm dependencies up‑to‑date; run <code>npm audit</code> and fix vulnerabilities.</p>
+    </li>
+    <li><strong>Secure Deployment Configuration</strong>
+      <ul>
+        <li>Disable public read/write on any Cloud Storage buckets used.</li>
+        <li>Use <code>firebase deploy --only hosting</code> for the static site; keep functions separate.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>Checklist for the Current Project</h2>
+  <ul class="checklist">
+    <li>Move any market‑data API keys to Firebase Functions or environment config.</li>
+    <li>Add a CSP header in <code>firebase.json</code>.</li>
+    <li>Enable Firebase Auth and protect Firestore data with rules.</li>
+    <li>Integrate DOMPurify for any HTML rendering of external data.</li>
+    <li>Run <code>npm audit</code> and address findings.</li>
+    <li>Verify all external URLs use HTTPS.</li>
+    <li>Add Cloud Logging for any server‑side endpoints.</li>
+  </ul>
+
+  <h2>References</h2>
+  <ul>
+    <li><a href="https://firebase.google.com/docs/rules">Firebase Security Rules</a></li>
+    <li><a href="https://owasp.org/www-project-top-ten/">OWASP Top 10 for SPAs</a></li>
+    <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP">Content Security Policy MDN</a></li>
+  </ul>
+  <hr/>
+  <p><em>Generated on 2026‑10‑14 for internal review.</em></p>
+</body>
+</html>

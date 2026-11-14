@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Usage & Optimization Report</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #1f6feb;
+      --success: #3fb950;
+      --warning: #d29922;
+      --danger: #f85149;
+      --badge-bg: #21262d;
+      --tag-na: #6e7681;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.6;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .badge-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(210, 153, 34, 0.2);
+      color: var(--warning);
+      border: 1px solid var(--warning);
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+
+    .meta-grid strong {
+      color: var(--text);
+    }
+
+    .notice-box {
+      background: rgba(88, 166, 255, 0.08);
+      border-left: 4px solid var(--accent);
+      padding: 16px 20px;
+      border-radius: 6px;
+      margin-bottom: 24px;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 28px 0 14px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .kpi-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .kpi-val {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .kpi-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .val-na {
+      color: var(--tag-na);
+      font-style: italic;
+    }
+
+    /* Tables */
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 24px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      text-align: left;
+    }
+
+    th {
+      background: #1f242c;
+      padding: 12px 14px;
+      font-weight: 600;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .p0 { background: rgba(248, 81, 73, 0.25); color: #ff7b72; border: 1px solid var(--danger); }
+    .p1 { background: rgba(210, 153, 34, 0.25); color: #e3b341; border: 1px solid var(--warning); }
+    .p2 { background: rgba(88, 166, 255, 0.25); color: #79c0ff; border: 1px solid var(--accent); }
+    .p3 { background: rgba(110, 118, 129, 0.25); color: #8b949e; border: 1px solid #484f58; }
+
+    .tag-category {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--badge-bg);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      border: 1px solid var(--border);
+    }
+
+    /* Cards & schema */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card h3 {
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    pre {
+      background: #090d13;
+      padding: 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+      font-size: 0.84rem;
+      color: #79c0ff;
+      margin-top: 10px;
+    }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      margin-top: 36px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <span class="badge-status">Template Mode &bull; No Export Data Connected</span>
+      <h1>AI Model Usage, Repeated Task Detection &amp; Optimization Report</h1>
+      <p style="color: var(--text-muted);">
+        Evidence-based evaluation of AI token consumption, latency, repeated tasks, and workflow efficiency.
+      </p>
+      <div class="meta-grid">
+        <div><strong>Generation Time:</strong> 2026-10-11 09:40:00 (Asia/Kolkata)</div>
+        <div><strong>Reporting Period:</strong> Unavailable (No export loaded)</div>
+        <div><strong>Data Sources:</strong> None (Awaiting telemetry / billing export)</div>
+        <div><strong>Active Model:</strong> Gemini 3.8 Flash</div>
+      </div>
+    </header>
+
+    <!-- Notice -->
+    <div class="notice-box">
+      <strong>Data Status Notice:</strong> In accordance with the AI Model Usage reporting rules, no provider billing export, API telemetry stream, or usage logs were detected in the workspace. Missing metrics are strictly recorded as <span class="val-na">Unavailable</span> to ensure honesty and prevent fabricated statistics. Below is the full evaluation framework and baseline recommendations for optimization.
+    </div>
+
+    <!-- Executive Summary -->
+    <h2 class="section-title">1. Executive Summary</h2>
+    <div class="card">
+      <p>
+        The system scanned for authorized telemetry records, API usage logs, and billing exports within the repository. Because external API usage telemetry is not actively connected or exported, exact token volumes and billing figures cannot be measured without user-provided logs.
+      </p>
+      <p style="margin-top: 10px;">
+        <strong>Key Guidelines &amp; Directives:</strong>
+      </p>
+      <ul>
+        <li><strong>Avoid runaway retries:</strong> Apply bounded retries on API requests and model calls.</li>
+        <li><strong>Context Optimization:</strong> In multi-turn coding sessions, avoid dumping entire repositories or large node_modules directories; supply pinpointed file slices.</li>
+        <li><strong>Deterministic Code First:</strong> Keep deterministic math, financial calculations, scoring, and sorting executed via TypeScript/SQL rather than LLM inference.</li>
+        <li><strong>Strict Adherence:</strong> Maintain project stability by skipping unnecessary test suite re-runs when editing localized features.</li>
+      </ul>
+    </div>
+
+    <!-- KPI Cards -->
+    <h2 class="section-title">2. Usage KPI Cards</h2>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Requests</div>
+        <div class="kpi-val val-na">Unavailable</div>
+        <div class="kpi-sub">Awaiting API metadata</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Input Tokens</div>
+        <div class="kpi-val val-na">Unavailable</div>
+        <div class="kpi-sub">Prompt &amp; context tokens</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Output Tokens</div>
+        <div class="kpi-val val-na">Unavailable</div>
+        <div class="kpi-sub">Completion tokens</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Cached Tokens</div>
+        <div class="kpi-val val-na">Unavailable</div>
+        <div class="kpi-sub">Context cache hits</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Reasoning Tokens</div>
+        <div class="kpi-val val-na">Unavailable</div>
+        <div class="kpi-sub">Thinking tokens</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Cost</div>
+        <div class="kpi-val val-na">Unavailable</div>
+        <div class="kpi-sub">Actual provider billing</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg Latency</div>
+        <div class="kpi-val val-na">Unavailable</div>
+        <div class="kpi-sub">Model response time</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Repeated Task Rate</div>
+        <div class="kpi-val val-na">Unavailable</div>
+        <div class="kpi-sub">Deduplicated task ratio</div>
+      </div>
+    </div>
+
+    <!-- Model / Provider Comparison -->
+    <h2 class="section-title">3. Model &amp; Provider Comparison</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Model</th>
+            <th>Requests</th>
+            <th>Input Tokens</th>
+            <th>Output Tokens</th>
+            <th>Avg Latency</th>
+            <th>Success Rate</th>
+            <th>Est. Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Google AI</td>
+            <td>Gemini 3.8 Flash</td>
+            <td class="val-na">Unavailable</td>
+            <td class="val-na">Unavailable</td>
+            <td class="val-na">Unavailable</td>
+            <td class="val-na">Unavailable</td>
+            <td class="val-na">Unavailable</td>
+            <td class="val-na">Unavailable</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Repeated Task Analysis -->
+    <h2 class="section-title">4. Repeated Task Detection</h2>
+    <div class="card">
+      <p>Tasks are classified into standard categories based on execution patterns:</p>
+      <ul>
+        <li><strong>Necessary:</strong> Independent scoring verification, schema updates, real-time quote refreshes.</li>
+        <li><strong>Potentially Avoidable:</strong> Repeatedly reading static instructions or entire documentation files instead of targeted sections.</li>
+        <li><strong>Unnecessary:</strong> Repetitive queries without parameter changes or re-generating identical boilerplate code.</li>
+        <li><strong>Retry-Related:</strong> Re-execution caused by timeouts, rate limits, or transient connection errors.</li>
+        <li><strong>Context Repetition:</strong> Re-transmitting large system prompts and full context windows when cached tokens could be leveraged.</li>
+      </ul>
+      <p style="margin-top: 10px; color: var(--text-muted); font-size: 0.85rem;">
+        * Quantitative repetition rate calculation: <code>(Total executions - Unique task executions) / Total executions &times; 100</code> (Pending telemetry log data).
+      </p>
+    </div>
+
+    <!-- Time Analysis & Bottlenecks -->
+    <h2 class="section-title">5. Bottleneck &amp; Latency Analysis</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Workflow Area</th>
+            <th>Identified Bottleneck</th>
+            <th>Impact</th>
+            <th>Likely Cause</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>File Reading / Indexing</td>
+            <td>Large directory traversal</td>
+            <td>Increased latency &amp; token count</td>
+            <td>Recursive search over unignored paths (e.g., node_modules, build outputs)</td>
+            <td>High</td>
+          </tr>
+          <tr>
+            <td>API Request Execution</td>
+            <td>Sequential data fetching</td>
+            <td>Slower end-to-end turnaround</td>
+            <td>Unbatched synchronous queries for index constituents</td>
+            <td>Medium</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Positive and Negative Impact Assessment -->
+    <h2 class="section-title">6. Positive &amp; Negative Impact Assessment</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Type</th>
+            <th>Impact Description</th>
+            <th>Severity / Likelihood</th>
+            <th>Mitigation Strategy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Financial</td>
+            <td>Positive</td>
+            <td>Lower token consumption by trimming redundant system prompt context and unneeded test suites.</td>
+            <td>High / High</td>
+            <td>Keep prompt slices minimal and focused on relevant files.</td>
+          </tr>
+          <tr>
+            <td>Performance</td>
+            <td>Positive</td>
+            <td>Using fast models like Flash for routine analysis speeds up response delivery by 3-5x.</td>
+            <td>Medium / High</td>
+            <td>Reserve high-reasoning models only for complex architectural tasks.</td>
+          </tr>
+          <tr>
+            <td>Quality</td>
+            <td>Negative Risk</td>
+            <td>Aggressive context truncation could cause the model to miss domain constraints in <code>docs/</code>.</td>
+            <td>High / Low</td>
+            <td>Always cross-reference specific requirement documents explicitly when generating features.</td>
+          </tr>
+          <tr>
+            <td>Security &amp; Privacy</td>
+            <td>Positive</td>
+            <td>Local processing and avoiding external transmission of sensitive portfolio records.</td>
+            <td>Critical / High</td>
+            <td>Preserve local SQLite database isolation; do not emit portfolio PII in external prompts.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Prioritized Recommendations -->
+    <h2 class="section-title">7. Prioritized Optimization Recommendations</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Priority</th>
+            <th>Problem / Opportunity</th>
+            <th>Proposed Change</th>
+            <th>Expected Savings</th>
+            <th>Effort</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>REC-01</td>
+            <td><span class="priority-badge p1">P1 — High</span></td>
+            <td>Redundant context reading during small updates</td>
+            <td>Use surgical line-range viewing and replace tools instead of loading full files.</td>
+            <td>~30-60% input tokens per edit</td>
+            <td>Low</td>
+            <td>High</td>
+          </tr>
+          <tr>
+            <td>REC-02</td>
+            <td><span class="priority-badge p2">P2 — Medium</span></td>
+            <td>Deterministic calculations handled by LLM</td>
+            <td>Keep technical stock scoring and 10-point quality check computed in native TypeScript.</td>
+            <td>Eliminates math hallucinations &amp; saves output tokens</td>
+            <td>Low</td>
+            <td>High</td>
+          </tr>
+          <tr>
+            <td>REC-03</td>
+            <td><span class="priority-badge p2">P2 — Medium</span></td>
+            <td>Batching constituent market data</td>
+            <td>Batch external API requests for index scanning rather than issuing single-stock roundtrips.</td>
+            <td>Reduces latency &amp; rate limit retries</td>
+            <td>Medium</td>
+            <td>High</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Ingestion Instructions -->
+    <h2 class="section-title">8. How to Ingest Actual Usage Data</h2>
+    <div class="card">
+      <p>To populate this report with exact measured data, provide a JSON or CSV file with the following normalized usage schema:</p>
+      <pre>{
+  "event_id": "req-1029384",
+  "timestamp": "2026-10-11T09:30:00Z",
+  "provider": "google",
+  "model": "gemini-3.8-flash",
+  "project_id": "ShareMarketAnalysis",
+  "task_id": "index-scanner-eval",
+  "task_category": "code-analysis",
+  "input_tokens": 1420,
+  "output_tokens": 340,
+  "cached_input_tokens": 850,
+  "reasoning_tokens": 0,
+  "latency_ms": 1150,
+  "workflow_duration_ms": 1450,
+  "retry_count": 0,
+  "status": "success",
+  "cost": 0.00035,
+  "cost_currency": "USD",
+  "metric_source": "provider-api-metadata"
+}</pre>
+      <p style="margin-top: 14px;">
+        Place the export file in the project folder (e.g., <code>data/ai_usage_export.json</code>) and re-run <code>/token-usage-report</code>.
+      </p>
+    </div>
+
+    <!-- Data Quality and Limitations -->
+    <h2 class="section-title">9. Data Quality &amp; Limitations</h2>
+    <div class="card">
+      <ul>
+        <li><strong>Missing Metrics:</strong> No provider usage metadata was supplied; placeholders are marked as <em>Unavailable</em>.</li>
+        <li><strong>Assumptions:</strong> Calculations and trade-offs are based on established LLM cost and performance baselines.</li>
+        <li><strong>Zero Hallucination Policy:</strong> Cost, token sums, and request counts are strictly left unpopulated rather than fabricated.</li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Generated by Antigravity AI &bull; Token Usage &amp; Optimization Framework &bull; Standalone HTML
+    </footer>
+  </div>
+</body>
+</html>

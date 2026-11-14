@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity | Indian Share Market & Mutual Fund Analysis</title>
+  <meta name="description" content="Production-quality investment analysis and portfolio compliance system for Indian equities and mutual funds based on 100-point scoring framework and custom rules.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <div class="brand-icon">📈</div>
+        <div style="flex: 1;">
+          <div class="brand-title">Antigravity</div>
+          <span class="brand-badge">Market Intelligence</span>
+        </div>
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Navigation" title="Close Menu">✕</button>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item active" data-view="dashboard">
+          <span class="icon">📊</span>
+          <span class="nav-text">Dashboard</span>
+        </li>
+        <li class="nav-item" data-view="stocks">
+          <span class="icon">🔍</span>
+          <span class="nav-text">Stock Analysis</span>
+        </li>
+        <li class="nav-item" data-view="screener">
+          <span class="icon">🏆</span>
+          <span class="nav-text">Quality Tiers (A/B/C)</span>
+        </li>
+        <li class="nav-item" data-view="watchlist">
+          <span class="icon">⭐</span>
+          <span class="nav-text">Watchlist <span class="nav-watchlist-badge" id="navWatchlistBadge" style="display:none;">0</span></span>
+        </li>
+        <li class="nav-item" data-view="opportunities">
+          <span class="icon">🎯</span>
+          <span class="nav-text">Today's Stock Opportunities</span>
+        </li>
+        <li class="nav-item" data-view="mutual-funds">
+          <span class="icon">📈</span>
+          <span class="nav-text">Mutual Funds</span>
+        </li>
+        <li class="nav-item" data-view="portfolio">
+          <span class="icon">💼</span>
+          <span class="nav-text">Portfolio Manager</span>
+        </li>
+        <li class="nav-item" data-view="alerts">
+          <span class="icon">🔔</span>
+          <span class="nav-text">Alerts & Drift</span>
+        </li>
+        <li class="nav-item" data-view="audit">
+          <span class="icon">📋</span>
+          <span class="nav-text">Audit & Strategy</span>
+        </li>
+        <li class="nav-item" data-view="index-scanner">
+          <span class="icon">📡</span>
+          <span class="nav-text">Index Stock Scanner</span>
+        </li>
+        <li class="nav-item" data-view="chat">
+          <span class="icon">💬</span>
+          <span class="nav-text">AI Market Chat</span>
+        </li>
+        <li class="nav-item" data-view="settings">
+          <span class="icon">⚙️</span>
+          <span class="nav-text">Rule Settings</span>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div>Step 1: Website Live Feed</div>
+        <div class="data-source-indicator">
+          <span class="pulse-dot"></span>
+          <span>NSE, BSE, Screener &amp; AMFI Connected</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle-btn" id="menuToggleBtn" aria-label="Toggle Navigation Menubar" title="Hide / Show Menubar">
+            <span class="menu-icon">☰</span>
+          </button>
+          <h1 class="page-title" id="pageTitleHeading">Investment Dashboard</h1>
+        </div>
+        <div class="topbar-right">
+          <!-- Format Switcher: Mobile & Web Toggle Button -->
+          <button class="view-mode-toggle-btn" id="viewModeToggleBtn" title="Toggle between Mobile View and Web Format">
+            <span class="view-mode-icon" id="viewModeIcon">📱</span>
+            <span class="view-mode-text" id="viewModeText">Mobile View</span>
+          </button>
+          <button class="secondary-btn topbar-desktop-only" id="refreshDataBtn" title="Re-sync data from live web feeds">
+            <span>🔄</span> Refresh
+          </button>
+          <button class="primary-btn topbar-desktop-only" id="openAddHoldingModalBtn">
+            <span>➕</span> Add Holding
+          </button>
+          <button class="alert-bell-btn" id="topAlertBellBtn" title="View Active Alerts">
+            <span>🔔</span>
+            <span class="alert-badge-count" id="headerAlertCount">0</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <main class="content-area">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <section id="view-dashboard" class="view-section active">
+          <!-- Profit trigger notification banner if active -->
+          <div id="dashboardProfitBanner" style="display: none;"></div>
+
+          <!-- Top 4 Metrics Row -->
+          <div class="grid-4">
+            <div class="card metric-card">
+              <div class="metric-label">Total Portfolio Value</div>
+              <div class="metric-value" id="dashTotalValue">₹0</div>
+              <div class="metric-sub" id="dashTotalPnlSub">--</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">Rule Compliance Score</div>
+              <div class="metric-value" id="dashComplianceScore">--%</div>
+              <div class="metric-sub positive">Evaluated vs Target Rules</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">Active Holdings</div>
+              <div class="metric-value" id="dashHoldingsCount">0</div>
+              <div class="metric-sub">Across 4 Target Asset Buckets</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">Critical Alerts</div>
+              <div class="metric-value" id="dashAlertsCount">0</div>
+              <div class="metric-sub warning" id="dashAlertsSub">All rules compliant</div>
+            </div>
+          </div>
+
+          <!-- Asset Allocation Grid -->
+          <div class="grid-2">
+            <div class="card">
+              <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: #fff;">Equity & ETF Allocation (Target: 40/30/20/10)</h3>
+              <div style="height: 260px; position: relative;">
+                <canvas id="dashAllocationChart"></canvas>
+              </div>
+              <div id="allocationBreakdownList" style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+
+            <div class="card">
+              <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: #fff;">Portfolio Rule Compliance Status</h3>
+              <div id="dashRuleStatusList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+            </div>
+          </div>
+
+          <!-- Top Candidates & Quick Recommendations -->
+          <div class="grid-2">
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 1.1rem; color: #fff;">Top Stock Candidates (100-Point Score)</h3>
+                <button class="secondary-btn" style="padding: 6px 12px; font-size: 0.78rem;" onclick="app.navigateTo('stocks')">View Screener</button>
+              </div>
+              <div id="dashTopStocksList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            </div>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 1.1rem; color: #fff;">4-Fund SIP Framework Status</h3>
+                <button class="secondary-btn" style="padding: 6px 12px; font-size: 0.78rem;" onclick="app.navigateTo('mutual-funds')">Manage Funds</button>
+              </div>
+              <div id="dashMfOverview" style="display: flex; flex-direction: column; gap: 12px;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. STOCK ANALYSIS VIEW -->
+        <section id="view-stocks" class="view-section">
+          <!-- Search Bar with Live Suggestions -->
+          <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="stockSearchInput" class="search-input" placeholder="Search Indian stocks (e.g. TCS, INFY, RELIANCE, POLYCAB, KAYNES, HDFCBANK)..." autocomplete="off">
+            <div id="stockSearchDropdown" class="search-dropdown"></div>
+          </div>
+
+          <!-- Active Stock Analysis Result Container -->
+          <div id="stockAnalysisResult">
+            <div class="card" style="text-align: center; padding: 40px 20px;">
+              <div style="font-size: 3rem; margin-bottom: 12px;">🔍</div>
+              <h3>Search Any Indian Stock</h3>
+              <p style="color: var(--text-secondary); max-width: 500px; margin: 8px auto 0;">
+                Live data fetched from Screener.in and Yahoo Finance. Calculates the exact 100-point score, Priority 10 checks, AI disruption risk, and valuation attractiveness.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- NEW: QUALITY TIERS SCREENER VIEW (Nifty 50 / 200 / 500 / BSE 100) -->
+        <section id="view-screener" class="view-section">
+          <!-- Screener Hero & Summary Metrics -->
+          <div class="grid-4" id="screenerSummaryGrid">
+            <div class="card metric-card">
+              <div class="metric-label">🌟 Category A (Score 90+)</div>
+              <div class="metric-value" id="screenerCatACount" style="color: var(--accent-amber);">0</div>
+              <div class="metric-sub positive">Elite compounders (Top hurdle)</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🥈 Category B (Score 85–90)</div>
+              <div class="metric-value" id="screenerCatBCount" style="color: var(--accent-blue);">0</div>
+              <div class="metric-sub positive">High-conviction candidates</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🥉 Category C (Score 80–85)</div>
+              <div class="metric-value" id="screenerCatCCount" style="color: var(--accent-emerald);">0</div>
+              <div class="metric-sub">Solid hurdle passers</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">Total Stocks Screened</div>
+              <div class="metric-value" id="screenerTotalCount">0</div>
+              <div class="metric-sub">Nifty 50, 200, 500 & BSE 100</div>
+            </div>
+          </div>
+
+          <!-- Interactive Filter Controls -->
+          <div class="card" style="margin-bottom: 24px; padding: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <!-- Market Cap Filter Bar -->
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Market Cap:</span>
+                  <div class="filter-pill-group" id="screenerCapPills">
+                    <button class="filter-pill active" data-cap="ALL">All Caps</button>
+                    <button class="filter-pill" data-cap="LARGE_CAP">Large Cap (Nifty 50 / BSE 100)</button>
+                    <button class="filter-pill" data-cap="MID_CAP">Mid Cap (Nifty 200)</button>
+                    <button class="filter-pill" data-cap="SMALL_CAP">Small Cap (Nifty 500)</button>
+                  </div>
+                </div>
+
+                <button class="secondary-btn" id="refreshScreenerBtn" style="padding: 6px 14px; font-size: 0.8rem;">
+                  <span>🔄</span> Re-Score Universe
+                </button>
+              </div>
+
+              <!-- Quality Tier Filter Bar -->
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Quality Tier:</span>
+                <div class="filter-pill-group" id="screenerTierPills">
+                  <button class="filter-pill active" data-tier="ALL">All Tiers</button>
+                  <button class="filter-pill tier-a" data-tier="CATEGORY_A">🌟 Category A (90+)</button>
+                  <button class="filter-pill tier-b" data-tier="CATEGORY_B">🥈 Category B (85–90)</button>
+                  <button class="filter-pill tier-c" data-tier="CATEGORY_C">🥉 Category C (80–85)</button>
+                </div>
+              </div>
+
+              <!-- Index & Search Bar -->
+              <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Index Filter:</span>
+                  <select id="screenerIndexSelect" class="form-select" style="width: auto; padding: 6px 12px; font-size: 0.82rem;">
+                    <option value="ALL">All Indices</option>
+                    <option value="NIFTY50">Nifty 50</option>
+                    <option value="BSE100">BSE 100</option>
+                    <option value="NIFTY200">Nifty 200</option>
+                    <option value="NIFTY500">Nifty 500</option>
+                  </select>
+                </div>
+
+                <div style="flex-grow: 1; min-width: 220px; position: relative;">
+                  <input type="text" id="screenerSearchInput" class="form-input" placeholder="Filter by company name or symbol..." style="padding: 6px 12px; font-size: 0.85rem;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Screener Stocks Table & Cards View -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div>
+                <h3 style="font-size: 1.15rem; color: #fff;">Screened Stocks (<span id="screenerVisibleCount">0</span> Candidates Found)</h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">Categorized using the 100-point scoring engine (Quality, Growth, Profitability, Financial Health, Cash Flow, Valuation, Moat).</p>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="custom-table" id="screenerTable">
+                <thead>
+                  <tr>
+                    <th>Symbol / Company</th>
+                    <th>Quality Tier</th>
+                    <th>Score</th>
+                    <th>Cap & Index</th>
+                    <th>Price</th>
+                    <th>ROCE</th>
+                    <th>ROE</th>
+                    <th>5Y Sales CAGR</th>
+                    <th>Debt / Eq</th>
+                    <th>P/E</th>
+                    <th>AI Disruption</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="screenerTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. MUTUAL FUNDS VIEW -->
+        <section id="view-mutual-funds" class="view-section">
+          <!-- 4-Fund Framework Header -->
+          <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(6,182,212,0.1));">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h2 style="font-size: 1.25rem; color: #fff; margin-bottom: 6px;">4-Fund Disciplined SIP Framework</h2>
+                <p style="color: var(--text-secondary); font-size: 0.88rem;">
+                  Strategy: Max 4 schemes, 30/30/30/10 target category allocation, 15-year wealth compounding horizon.
+                </p>
+              </div>
+              <button class="primary-btn" id="openAddMfModalBtn">
+                <span>➕</span> Add Fund Scheme
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 Selected Funds List -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-size: 1.1rem; color: #fff;">Selected SIP Portfolio Schemes (Max 4)</h3>
+              <span id="fourFundRuleBadge" class="badge pass">Rule Satisfied (4/4 Funds)</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="custom-table" id="mfPortfolioTable">
+                <thead>
+                  <tr>
+                    <th>Scheme Name</th>
+                    <th>Category</th>
+                    <th>Monthly SIP</th>
+                    <th>Current NAV</th>
+                    <th>Expense Ratio</th>
+                    <th>5Y Return</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="mfPortfolioTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 15-Year Horizon & Projection -->
+          <div class="grid-2">
+            <div class="card">
+              <h3 style="margin-bottom: 14px; font-size: 1.1rem; color: #fff;">15-Year Horizon SIP Projection</h3>
+              <div id="mfSipProjectionsDetails" style="display: flex; flex-direction: column; gap: 10px;"></div>
+              <div style="margin-top: 16px; padding: 14px; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-cyan);">
+                <div style="font-size: 0.82rem; font-weight: 600; color: #fff; margin-bottom: 4px;">Post-SIP Tax Disclaimer</div>
+                <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;" id="mfTaxGuidanceText"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="margin-bottom: 14px; font-size: 1.1rem; color: #fff;">Portfolio Overlap Matrix</h3>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+                Ensures selected funds do not hold duplicate stock exposure.
+              </p>
+              <div id="mfOverlapContainer" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            </div>
+          </div>
+
+          <!-- Live AMFI Fund Search Section -->
+          <div class="card" style="margin-top: 24px;">
+            <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 14px;">Explore & Search All Indian Mutual Funds (AMFI Public Registry)</h3>
+            <div class="search-container" style="margin-bottom: 12px;">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="mfSearchInput" class="search-input" placeholder="Search by scheme name or fund house (e.g. Parag Parikh, UTI Nifty, Motilal, ICICI)...">
+              <div id="mfSearchDropdown" class="search-dropdown"></div>
+            </div>
+            <div id="mfSchemeDetailsContainer"></div>
+          </div>
+        </section>
+
+        <!-- 4. PORTFOLIO MANAGER VIEW -->
+        <section id="view-portfolio" class="view-section">
+          <!-- Rebalancing & Sell Trigger Banner -->
+          <div id="portfolioSellAlertBanner"></div>
+
+          <!-- Holdings Table Card -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+              <div>
+                <h3 style="font-size: 1.15rem; color: #fff;">Portfolio Holdings & Asset Buckets</h3>
+                <p style="font-size: 0.82rem; color: var(--text-secondary);">Real-time valuation based on live market prices.</p>
+              </div>
+              <button class="primary-btn" onclick="app.openAddHoldingModal()">
+                <span>➕</span> Add Holding
+              </button>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="custom-table" id="holdingsTable">
+                <thead>
+                  <tr>
+                    <th>Symbol / Name</th>
+                    <th>Bucket</th>
+                    <th>Qty</th>
+                    <th>Avg Cost</th>
+                    <th>Live Price</th>
+                    <th>Current Value</th>
+                    <th>P&L (%)</th>
+                    <th>Allocation</th>
+                    <th>Rule Review</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="holdingsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Rebalancing Suggestions Card -->
+          <div class="card">
+            <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 14px;">Rebalancing Guidance (Rule Compliance)</h3>
+            <div id="portfolioRebalanceList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+          </div>
+        </section>
+
+        <!-- 5. ALERTS & DRIFT VIEW -->
+        <section id="view-alerts" class="view-section">
+          <div class="card" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 style="font-size: 1.1rem; color: #fff;">Active Alerts & Drift Warnings</h3>
+              <p style="font-size: 0.82rem; color: var(--text-secondary);">Monitors portfolio allocation, concentration risk, and stock quality events.</p>
+            </div>
+            <button class="secondary-btn" id="refreshAlertsBtn"><span>🔄</span> Refresh Alerts</button>
+          </div>
+
+          <div id="alertsListContainer" style="display: flex; flex-direction: column; gap: 14px;"></div>
+        </section>
+
+        <!-- 6. AUDIT TRAIL & STRATEGY VIEW -->
+        <section id="view-audit" class="view-section">
+          <div class="card" style="margin-bottom: 24px;">
+            <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 12px;">Audit Trail & Calculation Evidence (Rule 12)</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
+              Every recommendation and score preserves an audit record of the raw input snapshot, data source website, and calculated output.
+            </p>
+            <div class="table-wrapper">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Operation</th>
+                    <th>Target</th>
+                    <th>Source Provider</th>
+                    <th>Score / Status</th>
+                    <th>Snapshot Payload</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 12px;">Investment Strategy Source of Truth</h3>
+            <ul style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.8; margin-left: 20px;">
+              <li><strong>Equity Allocation:</strong> 40% Large-cap, 30% Mid-cap, 20% Small-cap, 10% Gold/Silver ETF.</li>
+              <li><strong>Large-Cap Rule:</strong> Long-term holding (never auto-sold solely based on percentage return).</li>
+              <li><strong>Mid/Small-Cap Profit Rule:</strong> At 10–15% return, review to lock gains and reduce risk.</li>
+              <li><strong>Mutual Funds:</strong> Maximum 4 schemes; 30% Nifty Index, 30% Multi-cap, 30% Mid & Small-cap, 10% Debt/Money Market.</li>
+              <li><strong>100-Point Scoring:</strong> Business Quality (20), Growth (20), Profitability (15), Financial Strength (15), Cash Flow (10), Valuation (10), Management (5), Moat (5).</li>
+              <li><strong>Decision Support:</strong> No automatic trade execution; all suggestions require manual user confirmation.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 7. SETTINGS VIEW -->
+        <section id="view-settings" class="view-section">
+          <div class="card" style="max-width: 680px;">
+            <h3 style="font-size: 1.15rem; color: #fff; margin-bottom: 18px;">Configurable Strategy Thresholds</h3>
+            <form id="settingsForm">
+              <div class="form-group">
+                <label class="form-label">Allocation Tolerance Band (± %)</label>
+                <input type="number" id="settingToleranceBand" class="form-input" min="1" max="15" step="0.5">
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Mid/Small Cap Sell Trigger Min (%)</label>
+                  <input type="number" id="settingSellTriggerMin" class="form-input" min="5" max="50">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Mid/Small Cap Sell Trigger Max (%)</label>
+                  <input type="number" id="settingSellTriggerMax" class="form-input" min="5" max="50">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Minimum Stock Score Candidate Threshold (out of 100)</label>
+                <input type="number" id="settingMinScore" class="form-input" min="50" max="95">
+              </div>
+              <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="submit" class="primary-btn">Save Configurations</button>
+                <button type="button" class="secondary-btn" id="resetConfigBtn">Reset Defaults</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 8. WATCHLIST VIEW -->
+        <section id="view-watchlist" class="view-section">
+          <!-- Summary Bar -->
+          <div class="grid-4" style="margin-bottom: 24px;">
+            <div class="card metric-card">
+              <div class="metric-label">⭐ Total Watched</div>
+              <div class="metric-value" id="watchlistTotalCount" style="color: var(--accent-amber);">0</div>
+              <div class="metric-sub">Stocks on your radar</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🌟 Category A</div>
+              <div class="metric-value" id="watchlistCatACount" style="color: var(--accent-amber);">0</div>
+              <div class="metric-sub positive">Score 90+</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🥈 Category B</div>
+              <div class="metric-value" id="watchlistCatBCount" style="color: var(--accent-blue);">0</div>
+              <div class="metric-sub positive">Score 85–90</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🥉 Category C</div>
+              <div class="metric-value" id="watchlistCatCCount" style="color: var(--accent-emerald);">0</div>
+              <div class="metric-sub">Score 80–85</div>
+            </div>
+          </div>
+
+          <!-- Filter Controls -->
+          <div class="card" style="margin-bottom: 24px; padding: 18px 20px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Market Cap:</span>
+                <div class="filter-pill-group" id="watchlistCapPills">
+                  <button class="filter-pill active" data-wlcap="ALL">All</button>
+                  <button class="filter-pill" data-wlcap="LARGE_CAP">Large Cap</button>
+                  <button class="filter-pill" data-wlcap="MID_CAP">Mid Cap</button>
+                  <button class="filter-pill" data-wlcap="SMALL_CAP">Small Cap</button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Category:</span>
+                <div class="filter-pill-group" id="watchlistTierPills">
+                  <button class="filter-pill active" data-wltier="ALL">All Tiers</button>
+                  <button class="filter-pill tier-a" data-wltier="CATEGORY_A">🌟 A (90+)</button>
+                  <button class="filter-pill tier-b" data-wltier="CATEGORY_B">🥈 B (85–90)</button>
+                  <button class="filter-pill tier-c" data-wltier="CATEGORY_C">🥉 C (80–85)</button>
+                  <button class="filter-pill" data-wltier="BELOW">Below 80</button>
+                </div>
+              </div>
+              <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="watchlistSearch" class="form-input" placeholder="Filter by name or symbol..." style="width: 220px; padding: 6px 12px; font-size: 0.85rem;">
+                <button class="primary-btn" id="openImportCsvModalBtn" style="padding: 6px 14px; font-size: 0.82rem; font-weight: 600;">
+                  <span>📥</span> Import CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Watchlist Table & Mobile Cards -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h3 style="font-size: 1.15rem; color: #fff;">My Watchlist (<span id="watchlistVisibleCount">0</span> stocks)</h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">Saved stocks for monitoring. Click Analyze for the full 100-point breakdown.</p>
+              </div>
+              <div class="watchlist-view-toggle" id="watchlistLayoutToggle">
+                <button class="wl-layout-btn active" id="wlViewCardsBtn" title="Touch Cards View">📱 Cards</button>
+                <button class="wl-layout-btn" id="wlViewTableBtn" title="Table Grid View">📋 Table</button>
+              </div>
+            </div>
+
+            <!-- Mobile Touch Cards List -->
+            <div class="watchlist-mobile-cards" id="watchlistMobileCards"></div>
+
+            <!-- Table Wrapper -->
+            <div class="table-wrapper" id="watchlistTableWrapper">
+              <table class="custom-table" id="watchlistTable">
+                <thead>
+                  <tr>
+                    <th>Symbol / Company</th>
+                    <th>Quality Tier</th>
+                    <th>Score</th>
+                    <th>Cap</th>
+                    <th>Price (₹)</th>
+                    <th>ROCE</th>
+                    <th>ROE</th>
+                    <th>P/E</th>
+                    <th>D/E</th>
+                    <th>Date Added</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="watchlistTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 9. AI MARKET CHAT VIEW -->
+        <section id="view-chat" class="view-section">
+          <!-- Chat Header -->
+          <div class="card chat-header-card" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h2 style="font-size: 1.25rem; color: #fff; margin-bottom: 4px;">💬 AI Market Analysis Chat</h2>
+                <p style="color: var(--text-secondary); font-size: 0.85rem;">Ask about stocks, mutual funds, and commodities. Use filters to refine context.</p>
+              </div>
+              <button class="secondary-btn" id="clearChatBtn" style="padding: 6px 14px; font-size: 0.8rem;">🗑️ Clear Chat</button>
+            </div>
+          </div>
+
+          <!-- Filter Panel -->
+          <div class="card chat-filter-panel" style="margin-bottom: 20px; padding: 18px 20px;">
+            <!-- Asset Type -->
+            <div class="chat-filter-row">
+              <span class="chat-filter-label">Asset Type:</span>
+              <div class="filter-chip-group" id="chatAssetChips">
+                <button class="filter-chip active" data-asset="STOCK">📈 Stock</button>
+                <button class="filter-chip" data-asset="MUTUAL_FUND">📊 Mutual Fund</button>
+                <button class="filter-chip" data-asset="COMMODITY">🏅 Commodity</button>
+              </div>
+            </div>
+
+            <!-- Market Cap / Category -->
+            <div class="chat-filter-row">
+              <span class="chat-filter-label">Cap / Category:</span>
+              <div class="filter-chip-group" id="chatCategoryChips">
+                <button class="filter-chip" data-cat="LARGE_CAP">Large Cap</button>
+                <button class="filter-chip" data-cat="MID_CAP">Mid Cap</button>
+                <button class="filter-chip" data-cat="SMALL_CAP">Small Cap</button>
+                <button class="filter-chip tier-a" data-cat="CATEGORY_A">🌟 Cat-A</button>
+                <button class="filter-chip tier-b" data-cat="CATEGORY_B">🥈 Cat-B</button>
+                <button class="filter-chip tier-c" data-cat="CATEGORY_C">🥉 Cat-C</button>
+              </div>
+            </div>
+
+            <!-- Sector -->
+            <div class="chat-filter-row">
+              <span class="chat-filter-label">Sector:</span>
+              <div class="filter-chip-group" id="chatSectorChips">
+                <button class="filter-chip" data-sector="Technology">💻 Technology</button>
+                <button class="filter-chip" data-sector="BFSI">🏦 BFSI</button>
+                <button class="filter-chip" data-sector="Pharma">💊 Pharma</button>
+                <button class="filter-chip" data-sector="FMCG">🛒 FMCG</button>
+                <button class="filter-chip" data-sector="Auto">🚗 Auto</button>
+                <button class="filter-chip" data-sector="Infrastructure">🏗️ Infra</button>
+                <button class="filter-chip" data-sector="Energy">⚡ Energy</button>
+                <button class="filter-chip" data-sector="Metals">⚙️ Metals</button>
+                <button class="filter-chip" data-sector="Chemicals">🧪 Chemicals</button>
+                <button class="filter-chip" data-sector="Realty">🏢 Realty</button>
+              </div>
+            </div>
+
+            <!-- Quick Prompts -->
+            <div class="chat-filter-row">
+              <span class="chat-filter-label">Quick Prompts:</span>
+              <div class="quick-prompt-group" id="chatQuickPrompts">
+                <button class="quick-prompt-btn" data-prompt="Show me the top quality large-cap stocks with score above 90">🏆 Top Cat-A picks</button>
+                <button class="quick-prompt-btn" data-prompt="Find best dividend-paying stocks with low debt">💰 Best dividend stocks</button>
+                <button class="quick-prompt-btn" data-prompt="Screen for low P/E stocks with high quality scores">📉 Low P/E quality</button>
+                <button class="quick-prompt-btn" data-prompt="Show high ROCE stocks above 25% with strong moat">🚀 High ROCE screen</button>
+                <button class="quick-prompt-btn" data-prompt="List debt-free or near-zero debt companies with good growth">🧹 Debt-free stocks</button>
+                <button class="quick-prompt-btn" data-prompt="Which stocks are showing strong momentum above their 200 DMA">📊 Momentum leaders</button>
+                <button class="quick-prompt-btn" data-prompt="Compare top mutual funds for long-term SIP investment">📈 Compare SIP funds</button>
+                <button class="quick-prompt-btn" data-prompt="What are the safest small-cap stocks with Category C or above score">🛡️ Safe small-caps</button>
+                <button class="quick-prompt-btn" data-prompt="Show AI beneficiary stocks with high quality score">🤖 AI Beneficiary picks</button>
+                <button class="quick-prompt-btn" data-prompt="What commodity or gold ETF should I consider for portfolio diversification">🏅 Commodity / Gold ETF</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Messages + Input -->
+          <div class="card chat-main-card">
+            <div class="chat-messages" id="chatMessages">
+              <!-- Welcome message -->
+              <div class="chat-bubble assistant">
+                <div class="chat-avatar">🤖</div>
+                <div class="chat-bubble-content">
+                  <div class="chat-bubble-text">
+                    Hello! I'm your AI Market Analysis assistant. I can help you analyse Indian stocks, mutual funds, and commodities using the 100-point scoring framework.
+                    <br><br>
+                    Try the <strong>Quick Prompts</strong> above, or type your own question. Use the <strong>filter chips</strong> to narrow context by asset type, cap size, category, or sector.
+                  </div>
+                  <div class="chat-bubble-time">Just now</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Input Row -->
+            <div class="chat-input-row">
+              <div class="chat-context-pills" id="chatActivePills"></div>
+              <div class="chat-input-bar">
+                <textarea id="chatInput" class="chat-textarea" placeholder="Ask about any stock, mutual fund, or commodity... (e.g. 'Analyse TCS vs INFY', 'Best pharma mid-caps', 'ROCE above 20 in BFSI')" rows="2"></textarea>
+                <button class="primary-btn chat-send-btn" id="chatSendBtn">
+                  <span>🚀</span> Send
+                </button>
+              </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div style="margin-top: 12px; padding: 10px 14px; background: rgba(245,158,11,0.06); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-amber);">
+              <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; margin: 0;">⚠️ <strong>Disclaimer:</strong> AI responses are decision-support only, derived from the 100-point scoring framework and portfolio rules. They are <em>not</em> financial advice or guaranteed returns. Always consult a SEBI-registered advisor before investing.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 10. INDEX STOCK SCANNER VIEW -->
+        <section id="view-index-scanner" class="view-section">
+          <!-- Summary Bar -->
+          <div class="grid-4" style="margin-bottom: 24px;">
+            <div class="card metric-card">
+              <div class="metric-label">📡 Total Scanned</div>
+              <div class="metric-value" id="idxScanTotalCount" style="color: var(--accent-cyan);">0</div>
+              <div class="metric-sub">Stocks matching score &gt; 80</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🌟 Category A (90+)</div>
+              <div class="metric-value" id="idxScanCatACount" style="color: var(--accent-amber);">0</div>
+              <div class="metric-sub positive">Elite compounders</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🥈 Category B (85–90)</div>
+              <div class="metric-value" id="idxScanCatBCount" style="color: var(--accent-blue);">0</div>
+              <div class="metric-sub positive">High conviction</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🥉 Category C (80–85)</div>
+              <div class="metric-value" id="idxScanCatCCount" style="color: var(--accent-emerald);">0</div>
+              <div class="metric-sub">Solid candidates</div>
+            </div>
+          </div>
+
+          <!-- Filter Controls -->
+          <div class="card" style="margin-bottom: 24px; padding: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+
+              <!-- Row 1: Exchange + Index + Run Button -->
+              <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Exchange:</span>
+                  <div class="filter-pill-group" id="idxScanExchangePills">
+                    <button class="filter-pill active" data-exchange="ALL">All</button>
+                    <button class="filter-pill" data-exchange="NSE">NSE</button>
+                    <button class="filter-pill" data-exchange="BSE">BSE</button>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Index:</span>
+                  <select id="idxScanIndexSelect" class="form-select" style="width: auto; padding: 6px 14px; font-size: 0.82rem;">
+                    <option value="ALL">All Indices</option>
+                    <optgroup label="── NSE Large-Cap ──">
+                      <option value="NIFTY50">NSE — NIFTY 50</option>
+                      <option value="NIFTY_NEXT_50">NSE — NIFTY Next 50</option>
+                      <option value="NIFTY100">NSE — NIFTY 100</option>
+                      <option value="NIFTY200">NSE — NIFTY 200</option>
+                    </optgroup>
+                    <optgroup label="── NSE Mid-Cap ──">
+                      <option value="NIFTY_MIDCAP_50">NSE — NIFTY Midcap 50</option>
+                      <option value="NIFTY_MIDCAP_100">NSE — NIFTY Midcap 100</option>
+                      <option value="NIFTY_MIDCAP_150">NSE — NIFTY Midcap 150</option>
+                      <option value="NIFTY_MIDCAP_SELECT">NSE — NIFTY Midcap Select</option>
+                    </optgroup>
+                    <optgroup label="── NSE Small-Cap ──">
+                      <option value="NIFTY_SMALLCAP_50">NSE — NIFTY Smallcap 50</option>
+                      <option value="NIFTY_SMALLCAP_100">NSE — NIFTY Smallcap 100</option>
+                      <option value="NIFTY_SMALLCAP_250">NSE — NIFTY Smallcap 250</option>
+                    </optgroup>
+                    <optgroup label="── NSE Broad Market ──">
+                      <option value="NIFTY500">NSE — NIFTY 500</option>
+                      <option value="NIFTY_LARGEMIDCAP_250">NSE — NIFTY LargeMidcap 250</option>
+                    </optgroup>
+                    <optgroup label="── BSE Large-Cap ──">
+                      <option value="BSE_LARGECAP">BSE — BSE LargeCap</option>
+                      <option value="BSE100">BSE — BSE 100</option>
+                    </optgroup>
+                    <optgroup label="── BSE Mid-Cap ──">
+                      <option value="BSE_MIDCAP">BSE — BSE MidCap</option>
+                      <option value="BSE200">BSE — BSE 200</option>
+                    </optgroup>
+                    <optgroup label="── BSE Small-Cap ──">
+                      <option value="BSE_SMALLCAP">BSE — BSE SmallCap</option>
+                    </optgroup>
+                    <optgroup label="── BSE Broad Market ──">
+                      <option value="BSE500">BSE — BSE 500</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <button class="primary-btn" id="idxScanRunBtn" style="padding: 8px 20px; font-size: 0.85rem; margin-left: auto;">
+                  <span>🔍</span> Run Analysis
+                </button>
+              </div>
+
+              <!-- Row 2: Score + Sector filters -->
+              <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Min Score:</span>
+                  <select id="idxScanScoreSelect" class="form-select" style="width: auto; padding: 6px 14px; font-size: 0.82rem;">
+                    <option value="80">Score &gt; 80 (Default)</option>
+                    <option value="85">Score &gt; 85 (B+)</option>
+                    <option value="90">Score &gt; 90 (A Only)</option>
+                    <option value="0">All Scores</option>
+                  </select>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Sector:</span>
+                  <select id="idxScanSectorSelect" class="form-select" style="width: auto; padding: 6px 14px; font-size: 0.82rem;">
+                    <option value="ALL">All Sectors</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Financial Services">Financial Services</option>
+                    <option value="Consumer Goods">Consumer Goods</option>
+                    <option value="Healthcare">Healthcare / Pharma</option>
+                    <option value="Energy">Energy</option>
+                    <option value="Industrials">Industrials / Capital Goods</option>
+                    <option value="Automobile">Automobile</option>
+                    <option value="Chemicals">Chemicals / Specialty</option>
+                    <option value="Metals">Metals &amp; Mining</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="FMCG">FMCG</option>
+                    <option value="Telecom">Telecom</option>
+                  </select>
+                </div>
+
+                <div style="flex-grow: 1; min-width: 200px; position: relative;">
+                  <input type="text" id="idxScanSearchInput" class="form-input" placeholder="Filter by name or symbol..." style="padding: 6px 12px; font-size: 0.85rem;">
+                </div>
+              </div>
+
+              <!-- Row 3: Quality Tier Pills -->
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Quality Tier:</span>
+                <div class="filter-pill-group" id="idxScanTierPills">
+                  <button class="filter-pill active" data-idxtier="ALL">All Tiers</button>
+                  <button class="filter-pill tier-a" data-idxtier="CATEGORY_A">🌟 Category A (90+)</button>
+                  <button class="filter-pill tier-b" data-idxtier="CATEGORY_B">🥈 Category B (85–90)</button>
+                  <button class="filter-pill tier-c" data-idxtier="CATEGORY_C">🥉 Category C (80–85)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Table -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div>
+                <h3 style="font-size: 1.15rem; color: #fff;">Index Scanner Results (<span id="idxScanVisibleCount">0</span> stocks)</h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">Filtered by Analysis Score &gt; 80 using the existing 100-point scoring framework. Click Inspect for full breakdown.</p>
+              </div>
+              <button class="secondary-btn" id="idxScanRefreshBtn" style="padding: 6px 14px; font-size: 0.8rem;">
+                <span>🔄</span> Re-Score
+              </button>
+            </div>
+
+            <div id="idxScanPlaceholder" class="card" style="text-align: center; padding: 40px 20px; background: rgba(255,255,255,0.01); border: 1px dashed var(--border-subtle); margin-bottom: 0;">
+              <div style="font-size: 3rem; margin-bottom: 12px;">📡</div>
+              <h3>Select an Index &amp; Run Analysis</h3>
+              <p style="color: var(--text-secondary); max-width: 500px; margin: 8px auto 0;">
+                Choose NSE or BSE, select an index (e.g. NIFTY 500), then click <strong>Run Analysis</strong> to screen stocks using the existing 100-point scoring engine.
+              </p>
+            </div>
+
+            <div class="table-wrapper" id="idxScanTableWrapper" style="display: none;">
+              <table class="custom-table" id="idxScanTable">
+                <thead>
+                  <tr>
+                    <th>Stock Name / Symbol</th>
+                    <th>Exchange</th>
+                    <th>Index</th>
+                    <th>Sector</th>
+                    <th>Quality Tier</th>
+                    <th>Score</th>
+                    <th>Current Price</th>
+                    <th>ROCE</th>
+                    <th>ROE</th>
+                    <th>P/E</th>
+                    <th>Recommendation</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="idxScanTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 11. TODAY'S STOCK OPPORTUNITIES VIEW -->
+        <section id="view-opportunities" class="view-section">
+          <!-- Top Action & Status Bar -->
+          <div class="card" style="margin-bottom: 24px; padding: 20px 24px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                  <span style="font-size: 1.6rem;">🎯</span>
+                  <h2 style="font-size: 1.4rem; color: #fff; margin: 0; font-weight: 700;">Today's Stock Opportunities</h2>
+                  <span id="oppsStatusBadge" class="badge info" style="font-size: 0.74rem;">Watchlist Analysis</span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0; max-width: 680px;">
+                  Disciplined, valuation-based opportunities evaluated from your existing Watchlist. Analyzes business quality (100-point score), estimated fair value, margin of safety, and portfolio risk rules.
+                </p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div style="text-align: right;" class="topbar-desktop-only">
+                  <div style="font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Last Analysis</div>
+                  <div id="oppsLastUpdatedText" style="font-size: 0.82rem; color: #fff; font-weight: 500;">Not yet generated</div>
+                </div>
+                <button class="primary-btn" id="generateOpportunitiesBtn" style="padding: 10px 22px; font-weight: 700; font-size: 0.9rem; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+                  <span id="oppsBtnIcon">🚀</span> <span id="oppsBtnText">Generate Today's Opportunities</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress / Loading Banner -->
+          <div id="oppsLoadingBanner" style="display: none; margin-bottom: 24px; padding: 16px 20px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: var(--radius-md); align-items: center; gap: 12px;">
+            <div class="pulse-dot" style="background: var(--accent-blue);"></div>
+            <span style="color: #fff; font-size: 0.88rem; font-weight: 500;" id="oppsLoadingText">Retrieving watchlist, calculating fair values &amp; applying investment rules...</span>
+          </div>
+
+          <!-- Opportunity Summary Cards (Grid of 6 Cards) -->
+          <div class="grid-6" id="oppsSummaryGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="card metric-card">
+              <div class="metric-label">⭐ Total Watchlist</div>
+              <div class="metric-value" id="oppSummaryTotal" style="color: #fff;">0</div>
+              <div class="metric-sub">Stocks on your radar</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">📊 Successfully Analyzed</div>
+              <div class="metric-value" id="oppSummaryAnalyzed" style="color: var(--accent-cyan);">0</div>
+              <div class="metric-sub positive">100-pt scored</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">🎯 Buy Candidates</div>
+              <div class="metric-value" id="oppSummaryBuys" style="color: var(--accent-emerald);">0</div>
+              <div class="metric-sub positive">Pass quality &amp; value</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">⏳ Hold / Watch</div>
+              <div class="metric-value" id="oppSummaryHolds" style="color: var(--accent-amber);">0</div>
+              <div class="metric-sub">Wait for entry/pullback</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">⚠️ Sell / Reduce</div>
+              <div class="metric-value" id="oppSummarySells" style="color: var(--accent-rose);">0</div>
+              <div class="metric-sub warning">Profit rule / stretch</div>
+            </div>
+            <div class="card metric-card">
+              <div class="metric-label">❓ Incomplete Data</div>
+              <div class="metric-value" id="oppSummaryIncomplete" style="color: var(--text-muted);">0</div>
+              <div class="metric-sub">Missing ratios/stale</div>
+            </div>
+          </div>
+
+          <!-- Interactive Filters & Cheapest-First Sorting Card -->
+          <div class="card" style="margin-bottom: 24px; padding: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+
+              <!-- Row 1: Market-Cap Category Pills -->
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Market Cap:</span>
+                  <div class="filter-pill-group" id="oppsCapPills">
+                    <button class="filter-pill active" data-oppcap="ALL">All Categories</button>
+                    <button class="filter-pill" data-oppcap="LARGE_CAP">Large Cap (&ge;₹50k Cr)</button>
+                    <button class="filter-pill" data-oppcap="MID_CAP">Mid Cap (₹15k–50k Cr)</button>
+                    <button class="filter-pill" data-oppcap="SMALL_CAP">Small Cap (₹1k–15k Cr)</button>
+                    <button class="filter-pill" data-oppcap="MICRO_CAP">Micro Cap (&lt;₹1k Cr)</button>
+                    <button class="filter-pill" data-oppcap="UNCLASSIFIED">Unclassified</button>
+                  </div>
+                </div>
+                <div style="font-size: 0.74rem; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: var(--radius-sm); border: 1px dashed var(--border-subtle);">
+                  ℹ️ Micro Cap (&lt;₹1,000 Cr) is an application-defined risk segment, not an official SEBI mutual fund category.
+                </div>
+              </div>
+
+              <!-- Row 2: Secondary Dropdown Filters -->
+              <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Signal:</span>
+                  <select id="oppsSignalSelect" class="form-select" style="width: auto; padding: 6px 12px; font-size: 0.82rem;">
+                    <option value="ALL">All Signals</option>
+                    <option value="BUY">🎯 Buy Candidates Only</option>
+                    <option value="HOLD_WATCH">⏳ Hold / Watch Only</option>
+                    <option value="SELL_REDUCE">⚠️ Sell / Reduce Only</option>
+                  </select>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Min Score:</span>
+                  <select id="oppsScoreSelect" class="form-select" style="width: auto; padding: 6px 12px; font-size: 0.82rem;">
+                    <option value="0">All Scores</option>
+                    <option value="70">Score &ge; 70 (Good)</option>
+                    <option value="80" selected>Score &ge; 80 (Candidates)</option>
+                    <option value="85">Score &ge; 85 (Cat B+)</option>
+                    <option value="90">Score &ge; 90 (Cat A Only)</option>
+                  </select>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Valuation:</span>
+                  <select id="oppsValuationSelect" class="form-select" style="width: auto; padding: 6px 12px; font-size: 0.82rem;">
+                    <option value="ALL">All Valuations</option>
+                    <option value="DEEPLY_UNDERVALUED">💎 Deep Value (&ge;20% MoS)</option>
+                    <option value="UNDERVALUED">🟢 Undervalued (&ge;5% MoS)</option>
+                    <option value="FAIR_VALUE">⚖️ Near Industry P/E Reference (&plusmn;10%)</option>
+                    <option value="OVERVALUED">⏳ Overvalued</option>
+                  </select>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Risk:</span>
+                  <select id="oppsRiskSelect" class="form-select" style="width: auto; padding: 6px 12px; font-size: 0.82rem;">
+                    <option value="ALL">All Risk Levels</option>
+                    <option value="LOW">🟢 Low Risk (Large Cap, D/E&lt;0.3)</option>
+                    <option value="MODERATE">🟡 Moderate Risk</option>
+                    <option value="HIGH">🔴 High Risk / Micro Cap</option>
+                  </select>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Sector:</span>
+                  <select id="oppsSectorSelect" class="form-select" style="width: auto; padding: 6px 12px; font-size: 0.82rem;">
+                    <option value="ALL">All Sectors</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Financial Services">Financial Services</option>
+                    <option value="Consumer Goods">Consumer Goods</option>
+                    <option value="Healthcare">Healthcare / Pharma</option>
+                    <option value="Energy">Energy</option>
+                    <option value="Industrials">Industrials / Infra</option>
+                    <option value="Automobile">Automobile</option>
+                    <option value="Chemicals">Chemicals</option>
+                    <option value="Metals">Metals &amp; Mining</option>
+                    <option value="FMCG">FMCG</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Row 3: Cheapest-First Sorting, Search & Reset -->
+              <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.82rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase;">Sort Order:</span>
+                  <select id="oppsSortSelect" class="form-select" style="width: auto; min-width: 280px; padding: 6px 14px; font-size: 0.85rem; font-weight: 600; color: #fff; background: rgba(15, 23, 42, 0.95); border-color: rgba(59, 130, 246, 0.4);">
+                    <option value="cheapest_fair_value" selected>💎 Lowest vs Industry P/E Reference</option>
+                    <option value="highest_margin_of_safety">📈 Highest Discount to Industry P/E Reference</option>
+                    <option value="lowest_pe">📉 Lowest P/E Ratio</option>
+                    <option value="lowest_pb">📊 Lowest P/B Ratio</option>
+                    <option value="highest_score">🏆 Highest Quality Score (100-Pt)</option>
+                    <option value="highest_earnings_growth">🚀 Highest Earnings Growth (5Y Profit CAGR)</option>
+                    <option value="highest_roce">💰 Highest ROCE</option>
+                    <option value="lowest_debt_equity">🛡️ Lowest Debt-to-Equity</option>
+                    <option value="lowest_price">🏷️ Lowest Current Market Price</option>
+                    <option value="lowest_risk">🟢 Lowest Risk Among Eligible</option>
+                  </select>
+                </div>
+
+                <div style="flex-grow: 1; min-width: 220px;">
+                  <input type="text" id="oppsSearchInput" class="form-input" placeholder="Search opportunity by name or symbol..." style="padding: 6px 12px; font-size: 0.85rem;">
+                </div>
+
+                <button class="secondary-btn" id="oppsResetFiltersBtn" style="padding: 6px 14px; font-size: 0.82rem;">
+                  🔄 Reset Filters
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Initial Placeholder Card (Shown before user generates) -->
+          <div id="oppsInitialPlaceholder" class="card" style="text-align: center; padding: 50px 20px; background: rgba(255,255,255,0.01); border: 1px dashed var(--border-subtle); margin-bottom: 24px;">
+            <div style="font-size: 3.2rem; margin-bottom: 12px;">🎯</div>
+            <h3 style="color: #fff; font-size: 1.25rem;">Ready to Scan Watchlist Opportunities</h3>
+            <p style="color: var(--text-secondary); max-width: 540px; margin: 8px auto 20px; line-height: 1.6;">
+              Click <strong>Generate Today's Opportunities</strong> above to screen your saved Watchlist stocks against the existing 100-point scoring framework, compare supported P/E ratios with industry P/E references, and categorize stocks into <strong>Buy Candidates</strong>, <strong>Hold/Watch</strong>, and <strong>Sell/Reduce</strong> review signals.
+            </p>
+            <button class="primary-btn" id="oppsStartAnalysisBtn" style="padding: 10px 24px; font-size: 0.9rem; font-weight: 700;">
+              <span>🚀</span> Start Analysis Now
+            </button>
+          </div>
+
+          <!-- Results Container (Shown after analysis) -->
+          <div id="oppsResultsContainer" style="display: none;">
+
+            <!-- SECTION 1: TODAY'S BUY CANDIDATES -->
+            <div class="card" style="margin-bottom: 28px; border-left: 4px solid var(--accent-emerald);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <h3 style="font-size: 1.2rem; color: #fff; margin: 0;">🎯 Today's Buy Candidates</h3>
+                    <span id="oppsBuyCountBadge" class="badge pass" style="font-size: 0.76rem; font-weight: 700;">0 Candidates</span>
+                  </div>
+                  <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+                    Stocks satisfying the 100-point quality framework (Score &ge; 80), sound balance sheet (D/E &le; 0.6), robust ROCE, and trading at attractive valuation or within optimal entry zone.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Buy Candidates Mobile Cards -->
+              <div class="opps-mobile-cards" id="oppsBuyMobileCards"></div>
+
+              <!-- Buy Candidates Table -->
+              <div class="table-wrapper" id="oppsBuyTableWrapper">
+                <table class="custom-table" id="oppsBuyTable">
+                  <thead>
+                    <tr>
+                      <th>Company / Symbol</th>
+                      <th>Exchange / Cap</th>
+                      <th>Sector</th>
+                      <th>Quality Score</th>
+                      <th>Valuation Status</th>
+                      <th>Current Price</th>
+                      <th>Industry P/E Reference</th>
+                      <th>Relative Price Discount</th>
+                      <th>P/E</th>
+                      <th>ROCE</th>
+                      <th>ROE</th>
+                      <th>D/E</th>
+                      <th>5Y Sales / Profit</th>
+                      <th>Entry Range</th>
+                      <th>Risk</th>
+                      <th>Failed Checks</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="oppsBuyTableBody"></tbody>
+                </table>
+              </div>
+
+              <!-- Buy Empty State -->
+              <div id="oppsBuyEmptyState" style="display: none; text-align: center; padding: 36px 20px; color: var(--text-secondary);">
+                <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
+                <div style="font-size: 0.95rem; font-weight: 600; color: #fff;">No stocks currently meet the selected buy criteria.</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Stocks in your watchlist may be high-quality but currently overvalued or awaiting pullback. See Hold / Watch candidates below.</div>
+              </div>
+            </div>
+
+            <!-- SECTION 2: HOLD / WATCH CANDIDATES -->
+            <div class="card" style="margin-bottom: 28px; border-left: 4px solid var(--accent-amber);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <h3 style="font-size: 1.2rem; color: #fff; margin: 0;">⏳ Hold / Watch Candidates</h3>
+                    <span id="oppsHoldCountBadge" class="badge warning" style="font-size: 0.76rem; font-weight: 700;">0 Candidates</span>
+                  </div>
+                  <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+                    Quality businesses monitored on your radar. Currently trading above optimal buy zones (waiting for price pullback), or requiring further earnings confirmation.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Hold Mobile Cards -->
+              <div class="opps-mobile-cards" id="oppsHoldMobileCards"></div>
+
+              <!-- Hold Table -->
+              <div class="table-wrapper" id="oppsHoldTableWrapper">
+                <table class="custom-table" id="oppsHoldTable">
+                  <thead>
+                    <tr>
+                      <th>Company / Symbol</th>
+                      <th>Cap Category</th>
+                      <th>Current Price</th>
+                      <th>Quality Score</th>
+                      <th>Valuation Status</th>
+                      <th>Relative Price Discount</th>
+                      <th>Preferred Entry Range</th>
+                      <th>Reason for Watchlist Classification</th>
+                      <th>Failed Checks</th>
+                      <th>Risk</th>
+                      <th>Last Updated</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="oppsHoldTableBody"></tbody>
+                </table>
+              </div>
+
+              <!-- Hold Empty State -->
+              <div id="oppsHoldEmptyState" style="display: none; text-align: center; padding: 30px 20px; color: var(--text-secondary);">
+                <div style="font-size: 0.9rem; color: var(--text-muted);">No hold/watch stocks found matching the current filters.</div>
+              </div>
+            </div>
+
+            <!-- SECTION 3: SELL / REDUCE CANDIDATES -->
+            <div class="card" style="margin-bottom: 28px; border-left: 4px solid var(--accent-rose);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <h3 style="font-size: 1.2rem; color: #fff; margin: 0;">⚠️ Sell / Reduce Candidates</h3>
+                    <span id="oppsSellCountBadge" class="badge fail" style="font-size: 0.76rem; font-weight: 700;">0 Candidates</span>
+                  </div>
+                  <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 4px;">
+                    Stocks subject to risk reduction: Mid/Small-cap holdings triggering the 10–15% profit-booking rule, extreme valuation stretch, or significant fundamental deterioration.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Sell Mobile Cards -->
+              <div class="opps-mobile-cards" id="oppsSellMobileCards"></div>
+
+              <!-- Sell Table -->
+              <div class="table-wrapper" id="oppsSellTableWrapper">
+                <table class="custom-table" id="oppsSellTable">
+                  <thead>
+                    <tr>
+                      <th>Company / Symbol</th>
+                      <th>Ownership Status</th>
+                      <th>Current Price</th>
+                      <th>Quality Score</th>
+                      <th>Valuation Status</th>
+                      <th>Sell / Reduce Signal</th>
+                      <th>Signal Reason &amp; Deterioration Indicators</th>
+                      <th>Failed Checks</th>
+                      <th>Risk Level</th>
+                      <th>Last Updated</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="oppsSellTableBody"></tbody>
+                </table>
+              </div>
+
+              <!-- Sell Empty State -->
+              <div id="oppsSellEmptyState" style="display: none; text-align: center; padding: 30px 20px; color: var(--text-secondary);">
+                <div style="font-size: 0.9rem; color: var(--text-muted);">No stocks currently trigger sell or reduce signals under current criteria.</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Add Holding Modal -->
+  <div class="modal-overlay" id="addHoldingModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="color: #fff; font-size: 1.15rem;">Add Holding to Portfolio</h3>
+        <button class="close-btn" id="closeAddHoldingModal">&times;</button>
+      </div>
+      <form id="addHoldingForm">
+        <div class="form-group">
+          <label class="form-label">Symbol (NSE / BSE)</label>
+          <input type="text" id="modalHoldingSymbol" class="form-input" placeholder="e.g. INFY, RELIANCE, GOLDBEES" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asset Bucket</label>
+          <select id="modalHoldingCategory" class="form-select">
+            <option value="LARGE_CAP">Large-Cap Stock (Target 40%)</option>
+            <option value="MID_CAP">Mid-Cap Stock (Target 30%)</option>
+            <option value="SMALL_CAP">Small-Cap Stock (Target 20%)</option>
+            <option value="ETF_GOLD_SILVER">Gold/Silver ETF (Target 10%)</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Quantity</label>
+            <input type="number" id="modalHoldingQty" class="form-input" min="1" step="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Average Purchase Cost (₹)</label>
+            <input type="number" id="modalHoldingCost" class="form-input" min="0.01" step="0.01" required>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="secondary-btn" id="cancelAddHoldingBtn">Cancel</button>
+          <button type="submit" class="primary-btn">Save Holding</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Mutual Fund Scheme Modal -->
+  <div class="modal-overlay" id="addMfModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="color: #fff; font-size: 1.15rem;">Add Scheme to 4-Fund SIP Portfolio</h3>
+        <button class="close-btn" id="closeAddMfModal">&times;</button>
+      </div>
+      <form id="addMfForm">
+        <div class="form-group">
+          <label class="form-label">AMFI Scheme Code</label>
+          <input type="text" id="modalMfSchemeCode" class="form-input" placeholder="e.g. 122639 (Parag Parikh Flexi Cap)" required>
+          <small style="color: var(--text-muted); font-size: 0.75rem;">Tip: Search schemes in the Mutual Funds tab to get the official AMFI code.</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Monthly SIP Amount (₹)</label>
+          <input type="number" id="modalMfSipAmount" class="form-input" min="500" step="500" value="10000" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">SIP Start Date</label>
+          <input type="date" id="modalMfStartDate" class="form-input" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="secondary-btn" id="cancelAddMfBtn">Cancel</button>
+          <button type="submit" class="primary-btn">Add Fund Scheme</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Import Watchlist CSV Modal -->
+  <div class="modal-overlay" id="importCsvModal">
+    <div class="modal-card" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 style="color: #fff; font-size: 1.15rem; display: flex; align-items: center; gap: 8px;">
+          <span>📥</span> Import Watchlist from CSV
+        </h3>
+        <button class="close-btn" id="closeImportCsvModal">&times;</button>
+      </div>
+      <div style="margin-bottom: 16px;">
+        <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px;">
+          Upload a <code>.csv</code> file or paste rows below. The required columns are:
+          <strong style="color: var(--accent-emerald);">symbol,company_name,market_cap_type</strong>
+        </p>
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 12px; font-family: monospace; font-size: 0.78rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            symbol,company_name,market_cap_type<br>
+            LUPIN,Lupin,Large Cap<br>
+            BAJAJ-AUTO,Bajaj Auto,Large Cap
+          </div>
+          <button type="button" class="secondary-btn" id="downloadSampleCsvBtn" style="padding: 4px 8px; font-size: 0.72rem; white-space: nowrap;">
+            📄 Sample CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Upload CSV File</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">(.csv or .txt)</span>
+        </label>
+        <input type="file" id="csvFileInput" accept=".csv,text/csv,text/plain" class="form-input" style="padding: 8px;">
+      </div>
+
+      <div style="text-align: center; margin: 12px 0; color: var(--text-muted); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+        ── OR Paste CSV Text ──
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">CSV Text</label>
+        <textarea id="csvTextInput" class="form-input" rows="6" style="font-family: monospace; font-size: 0.82rem; resize: vertical;" placeholder="symbol,company_name,market_cap_type&#10;LUPIN,Lupin,Large Cap&#10;BAJAJ-AUTO,Bajaj Auto,Large Cap"></textarea>
+      </div>
+
+      <!-- Preview / Feedback area -->
+      <div id="csvImportPreview" style="display: none; padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 0.82rem;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="secondary-btn" id="cancelImportCsvBtn">Cancel</button>
+        <button type="button" class="primary-btn" id="submitImportCsvBtn">
+          <span>🚀</span> Import to Watchlist
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Mobile Drawer Backdrop Overlay -->
+  <div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop"></div>
+
+  <!-- Mobile Bottom Navigation Bar (Android Optimized) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Mobile Navigation">
+    <button class="mobile-bottom-nav-item" data-view="stocks" title="Stock Analysis">
+      <span class="bnav-icon">🔍</span>
+      <span class="bnav-label">Analysis</span>
+    </button>
+    <button class="mobile-bottom-nav-item" data-view="watchlist" title="My Watchlist">
+      <span class="bnav-icon">⭐</span>
+      <span class="bnav-label">Watchlist</span>
+      <span class="bnav-badge" id="bnavWatchlistBadge" style="display:none;">0</span>
+    </button>
+    <button class="mobile-bottom-nav-item" data-view="screener" title="Quality Tiers">
+      <span class="bnav-icon">🏆</span>
+      <span class="bnav-label">Screener</span>
+    </button>
+    <button class="mobile-bottom-nav-item active" data-view="dashboard" title="Dashboard">
+      <span class="bnav-icon">📊</span>
+      <span class="bnav-label">Dashboard</span>
+    </button>
+    <button class="mobile-bottom-nav-item" id="mobileMoreMenuBtn" title="More Menus">
+      <span class="bnav-icon">☰</span>
+      <span class="bnav-label">Menu</span>
+    </button>
+  </nav>
+
+  <!-- Floating Chat FAB -->
+  <button class="fab-chat" id="fabChatBtn" title="Open AI Market Chat">
+    <span class="fab-icon">💬</span>
+    <span class="fab-label">AI Chat</span>
+  </button>
+
+  <script src="app.js?v=20261021-opportunities-rule-rebuild"></script>
+</body>
+</html>
