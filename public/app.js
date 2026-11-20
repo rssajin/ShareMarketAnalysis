@@ -203,6 +203,27 @@ const app = {
       if (this.activeView === 'watchlist') {
         this.renderWatchlistTable();
       }
+
+      // Sync watchlist layout toggle buttons and container visibility
+      const cardsBtn = document.getElementById('wlViewCardsBtn');
+      const tableBtn = document.getElementById('wlViewTableBtn');
+      const cardsContainer = document.getElementById('watchlistMobileCards');
+      const tableWrapper = document.getElementById('watchlistTableWrapper');
+      if (isMobile) {
+        cardsBtn?.classList.add('active');
+        tableBtn?.classList.remove('active');
+        cardsContainer?.classList.remove('force-hidden');
+        cardsContainer?.classList.add('force-visible');
+        tableWrapper?.classList.remove('force-visible');
+        tableWrapper?.classList.add('force-hidden');
+      } else {
+        tableBtn?.classList.add('active');
+        cardsBtn?.classList.remove('active');
+        tableWrapper?.classList.remove('force-hidden');
+        tableWrapper?.classList.add('force-visible');
+        cardsContainer?.classList.remove('force-visible');
+        cardsContainer?.classList.add('force-hidden');
+      }
     };
 
     applyMode(currentMode, false);
@@ -626,6 +647,7 @@ const app = {
   },
 
   renderStockAnalysis(anl, competitors) {
+    this.currentAnalysis = anl;
     const container = document.getElementById('stockAnalysisResult');
     const m = anl.metrics;
 
@@ -636,9 +658,13 @@ const app = {
     const circumference = 2 * Math.PI * 45; // r=45
     const strokeDashoffset = circumference - (anl.totalScore / 100) * circumference;
 
-    // Watchlist state
-    const isWatched = this.watchlistState.items.some(i => i.symbol === anl.symbol);
+    // Watchlist state & auto-sync fresh analysis if already in watchlist
+    const cleanSym = (anl.symbol || '').toUpperCase().trim();
+    const isWatched = this.watchlistState.items.some(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
     const wlBtnId = `wlBtn_${anl.symbol}`;
+    if (isWatched) {
+      this.syncWatchlistAnalysis(anl);
+    }
 
     // Dividend & 5-Year Return metrics
     const divYield = m.dividendYield !== undefined && m.dividendYield !== null ? m.dividendYield : (m.roce > 30 ? 2.4 : m.roce > 20 ? 1.5 : 1.1);
@@ -672,7 +698,7 @@ const app = {
               <div style="font-size: 1.75rem; font-weight: 800; color: #fff;">₹${m.price.toLocaleString('en-IN')}</div>
               <div style="font-size: 0.78rem; color: var(--text-secondary);">Source: Official NSE &amp; BSE (Till Previous Date) + Screener</div>
             </div>
-            <button id="${wlBtnId}" class="secondary-btn" style="padding: 8px 14px; font-size: 0.82rem; ${isWatched ? 'color: var(--accent-amber); border-color: rgba(245,158,11,0.5);' : ''}" onclick="app.toggleWatchlist(${JSON.stringify(anl).replace(/"/g, '&quot;')})">
+            <button id="${wlBtnId}" class="secondary-btn" style="padding: 8px 14px; font-size: 0.82rem; ${isWatched ? 'color: var(--accent-amber); border-color: rgba(245,158,11,0.5);' : ''}" onclick="app.toggleWatchlist()">
               ${isWatched ? '⭐ Watchlisted' : '☆ Add to Watchlist'}
             </button>
             <button class="primary-btn" onclick="app.quickAddHoldingFromStock('${anl.symbol}', ${m.price}, '${m.marketCapCategory}')">
@@ -2275,8 +2301,8 @@ const app = {
                 <button class="secondary-btn" style="padding: 5px 8px; font-size: 0.75rem;" onclick="app.quickAddHoldingFromStock('${s.symbol}', ${s.price}, '${s.marketCapCategory}')" title="Add to Portfolio">
                   ➕
                 </button>
-                <button class="secondary-btn" style="padding: 5px 8px; font-size: 0.75rem; ${this.watchlistState.items.some(i => i.symbol === s.symbol) ? 'color:var(--accent-amber);' : ''}" onclick="app.toggleWatchlistFromScreener(${JSON.stringify(s).replace(/"/g, '&quot;')})" title="${this.watchlistState.items.some(i => i.symbol === s.symbol) ? 'Remove from Watchlist' : 'Add to Watchlist'}">
-                  ${this.watchlistState.items.some(i => i.symbol === s.symbol) ? '⭐' : '☆'}
+                <button class="secondary-btn" style="padding: 5px 8px; font-size: 0.75rem; ${this.watchlistState.items.some(i => (i.symbol || '').toUpperCase() === s.symbol.toUpperCase()) ? 'color:var(--accent-amber);' : ''}" onclick="app.toggleWatchlistFromScreener('${s.symbol}')" title="${this.watchlistState.items.some(i => (i.symbol || '').toUpperCase() === s.symbol.toUpperCase()) ? 'Remove from Watchlist' : 'Add to Watchlist'}">
+                  ${this.watchlistState.items.some(i => (i.symbol || '').toUpperCase() === s.symbol.toUpperCase()) ? '⭐' : '☆'}
                 </button>
               </div>
             </td>
@@ -2498,13 +2524,13 @@ const app = {
             symbol: item.symbol.toUpperCase(),
             name: item.company_name || existing?.name || item.symbol,
             marketCapCategory: normCap,
-            price: existing?.currentPrice || 1000,
-            roce: existing?.metrics?.roce || 18,
-            roe: existing?.metrics?.roe || 16,
-            pe: existing?.metrics?.pe || 22,
-            debtEquity: existing?.metrics?.debtToEquity || 0.15,
-            score: existing?.qualityScore?.totalScore || 80,
-            qualityTier: existing?.qualityScore?.tier || 'CATEGORY_C'
+            price: existing?.price ?? existing?.currentPrice ?? null,
+            roce: existing?.roce ?? existing?.metrics?.roce ?? null,
+            roe: existing?.roe ?? existing?.metrics?.roe ?? null,
+            pe: existing?.pe ?? existing?.metrics?.pe ?? null,
+            debtEquity: existing?.debtEquity ?? existing?.metrics?.debtToEquity ?? null,
+            score: existing?.score ?? existing?.qualityScore?.totalScore ?? null,
+            qualityTier: existing?.qualityTier ?? existing?.qualityScore?.tier ?? null
           };
           const singleRes = await fetch('/api/v1/watchlist', {
             method: 'POST',
@@ -2622,29 +2648,35 @@ const app = {
     }
   },
 
-  // Toggle from stock analysis screen (passes full analysis object)
-  async toggleWatchlist(anl) {
-    const isWatched = this.watchlistState.items.some(i => i.symbol === anl.symbol);
+  // Toggle from stock analysis screen (supports passing full analysis object or uses currentAnalysis)
+  async toggleWatchlist(anlArg) {
+    const anl = (typeof anlArg === 'object' && anlArg !== null) ? anlArg : this.currentAnalysis;
+    if (!anl || !anl.symbol) {
+      this.showToast('No active stock analysis to watchlist', 'warning');
+      return;
+    }
+    const cleanSym = (anl.symbol || '').toUpperCase().trim();
+    const isWatched = this.watchlistState.items.some(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
     if (isWatched) {
       try {
-        await fetch(`/api/v1/watchlist/${encodeURIComponent(anl.symbol)}`, { method: 'DELETE' });
-        this.watchlistState.items = this.watchlistState.items.filter(i => i.symbol !== anl.symbol);
-        this.showToast(`${anl.symbol} removed from Watchlist`, 'info');
+        await fetch(`/api/v1/watchlist/${encodeURIComponent(cleanSym)}`, { method: 'DELETE' });
+        this.watchlistState.items = this.watchlistState.items.filter(i => (i.symbol || '').toUpperCase().trim() !== cleanSym);
+        this.showToast(`${cleanSym} removed from Watchlist`, 'info');
       } catch (e) {
-        this.showToast(`Error removing ${anl.symbol}: ${e.message}`, 'fail');
+        this.showToast(`Error removing ${cleanSym}: ${e.message}`, 'fail');
       }
     } else {
       const item = {
-        symbol: anl.symbol,
-        name: anl.name,
+        symbol: cleanSym,
+        name: anl.name || cleanSym,
         qualityTier: anl.totalScore >= 90 ? 'CATEGORY_A' : anl.totalScore >= 85 ? 'CATEGORY_B' : anl.totalScore >= 80 ? 'CATEGORY_C' : 'BELOW_80',
         score: anl.totalScore,
-        marketCapCategory: anl.metrics.marketCapCategory,
-        price: anl.metrics.price,
-        roce: anl.metrics.roce,
-        roe: anl.metrics.roe,
-        pe: anl.metrics.pe,
-        debtEquity: anl.metrics.debtEquity,
+        marketCapCategory: anl.metrics?.marketCapCategory,
+        price: anl.metrics?.price,
+        roce: anl.metrics?.roce,
+        roe: anl.metrics?.roe,
+        pe: anl.metrics?.pe,
+        debtEquity: anl.metrics?.debtEquity,
         addedAt: new Date().toISOString()
       };
       try {
@@ -2655,41 +2687,199 @@ const app = {
         });
         const data = await res.json();
         if (data.success && data.data) {
-          this.watchlistState.items.unshift(data.data);
-          this.showToast(`${anl.symbol} added to Watchlist ⭐ (saved to DB)`, 'pass');
+          const idx = this.watchlistState.items.findIndex(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
+          if (idx >= 0) {
+            this.watchlistState.items[idx] = data.data;
+          } else {
+            this.watchlistState.items.unshift(data.data);
+          }
+          this.showToast(`${cleanSym} added to Watchlist ⭐ (saved to DB)`, 'pass');
         }
       } catch (e) {
-        this.showToast(`Error adding ${anl.symbol}: ${e.message}`, 'fail');
+        this.showToast(`Error adding ${cleanSym}: ${e.message}`, 'fail');
       }
     }
     this.updateWatchlistNavBadge();
+    this.renderWatchlistTable();
 
     // Refresh button label if on stocks view
     const btn = document.getElementById(`wlBtn_${anl.symbol}`);
     if (btn) {
-      const isNow = this.watchlistState.items.some(i => i.symbol === anl.symbol);
+      const isNow = this.watchlistState.items.some(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
       btn.textContent = isNow ? '⭐ Watchlisted' : '☆ Add to Watchlist';
       btn.style.color = isNow ? 'var(--accent-amber)' : '';
       btn.style.borderColor = isNow ? 'rgba(245,158,11,0.5)' : '';
     }
   },
 
-  // Toggle from screener table (passes screener stock object)
-  async toggleWatchlistFromScreener(s) {
-    const isWatched = this.watchlistState.items.some(i => i.symbol === s.symbol);
+  // Auto-sync fresh analysis metrics to SQLite for a watchlisted stock
+  async syncWatchlistAnalysis(anl) {
+    if (!anl || !anl.symbol) return;
+    const cleanSym = (anl.symbol || '').toUpperCase().trim();
+    try {
+      const item = {
+        symbol: cleanSym,
+        name: anl.name || cleanSym,
+        qualityTier: anl.totalScore >= 90 ? 'CATEGORY_A' : anl.totalScore >= 85 ? 'CATEGORY_B' : anl.totalScore >= 80 ? 'CATEGORY_C' : 'BELOW_80',
+        score: anl.totalScore,
+        marketCapCategory: anl.metrics?.marketCapCategory,
+        price: anl.metrics?.price,
+        roce: anl.metrics?.roce,
+        roe: anl.metrics?.roe,
+        pe: anl.metrics?.pe,
+        debtEquity: anl.metrics?.debtEquity,
+        addedAt: new Date().toISOString()
+      };
+      const res = await fetch('/api/v1/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const idx = this.watchlistState.items.findIndex(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
+        if (idx >= 0) {
+          this.watchlistState.items[idx] = data.data;
+        }
+        this.renderWatchlistTable();
+      }
+    } catch (e) {
+      console.warn('Auto-sync to watchlist skipped:', e);
+    }
+  },
+
+  // ── Analyze All Watchlist Stocks ─────────────────────────────────────────
+  // Fetches the current 100-pt analysis for every watchlisted stock one-by-one,
+  // updates score/metrics in DB via syncWatchlistAnalysis, and shows live progress.
+  async analyzeAllWatchlist() {
+    const symbols = (this.watchlistState.items || []).map(i => (i.symbol || '').toUpperCase().trim()).filter(Boolean);
+    if (symbols.length === 0) {
+      this.showToast('Watchlist is empty — nothing to analyze.', 'info');
+      return;
+    }
+
+    // Prevent double-run
+    if (this._analyzeAllRunning) {
+      this.showToast('Analysis already in progress...', 'info');
+      return;
+    }
+    this._analyzeAllRunning = true;
+
+    // UI: show progress banner, disable button
+    const btn = document.getElementById('analyzeAllWatchlistBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span>⏳</span> Analyzing...'; }
+    const banner     = document.getElementById('analyzeAllProgress');
+    const statusEl   = document.getElementById('analyzeAllStatusText');
+    const countEl    = document.getElementById('analyzeAllCountText');
+    const barEl      = document.getElementById('analyzeAllProgressBar');
+    const symbolEl   = document.getElementById('analyzeAllCurrentSymbol');
+    if (banner) banner.style.display = 'block';
+
+    const total = symbols.length;
+    let done = 0;
+    let succeeded = 0;
+    let failed = 0;
+    const failedSymbols = [];
+
+    const updateUI = (sym) => {
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      if (countEl)  countEl.textContent  = `${done} / ${total}`;
+      if (barEl)    barEl.style.width    = `${pct}%`;
+      if (statusEl) statusEl.textContent = `⚡ Analyzing watchlist stocks... ${pct}%`;
+      if (symbolEl && sym) symbolEl.textContent = `Current: ${sym}`;
+    };
+
+    updateUI(null);
+
+    for (const sym of symbols) {
+      if (symbolEl) symbolEl.textContent = `Fetching: ${sym}...`;
+      try {
+        const res = await fetch(`/api/v1/stocks/${encodeURIComponent(sym)}/analysis`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const anl = json?.data;
+        if (anl && anl.totalScore !== undefined) {
+          // Build the payload the same way syncWatchlistAnalysis does, but call directly
+          const cleanSym = sym;
+          const item = {
+            symbol: cleanSym,
+            name: anl.name || cleanSym,
+            qualityTier: anl.totalScore >= 90 ? 'CATEGORY_A' : anl.totalScore >= 85 ? 'CATEGORY_B' : anl.totalScore >= 80 ? 'CATEGORY_C' : 'BELOW_80',
+            score: anl.totalScore,
+            marketCapCategory: anl.metrics?.marketCapCategory,
+            price: anl.metrics?.price,
+            roce: anl.metrics?.roce,
+            roe: anl.metrics?.roe,
+            pe: anl.metrics?.pe,
+            debtEquity: anl.metrics?.debtEquity,
+            addedAt: new Date().toISOString()
+          };
+          const saveRes = await fetch('/api/v1/watchlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item)
+          });
+          const saveJson = await saveRes.json();
+          if (saveJson.success && saveJson.data) {
+            const idx = this.watchlistState.items.findIndex(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
+            if (idx >= 0) this.watchlistState.items[idx] = saveJson.data;
+          }
+          succeeded++;
+        } else {
+          failed++;
+          failedSymbols.push(sym);
+        }
+      } catch (e) {
+        failed++;
+        failedSymbols.push(sym);
+        console.warn(`analyzeAll: failed for ${sym}:`, e.message);
+      }
+
+      done++;
+      updateUI(sym);
+      // Small delay to avoid hammering the API rate limits
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    // Done — update UI
+    this._analyzeAllRunning = false;
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span>⚡</span> Analyze All'; }
+    if (statusEl) statusEl.textContent = `✅ Done! ${succeeded} updated${failed > 0 ? `, ${failed} failed` : ''}.`;
+    if (symbolEl) symbolEl.textContent = failed > 0 ? `Failed: ${failedSymbols.join(', ')}` : 'All stocks analyzed successfully.';
+    if (barEl) barEl.style.width = '100%';
+
+    this.renderWatchlistTable();
+    this.showToast(`⚡ Analyze All complete: ${succeeded}/${total} stocks updated.${failed > 0 ? ` ${failed} failed (see banner).` : ''}`, succeeded > 0 ? 'pass' : 'fail');
+
+    // Auto-hide banner after 8 seconds
+    setTimeout(() => {
+      if (banner) banner.style.display = 'none';
+    }, 8000);
+  },
+
+  // Toggle from screener table (passes screener stock symbol or object)
+  async toggleWatchlistFromScreener(symbolOrObj) {
+    const symbol = typeof symbolOrObj === 'string' ? symbolOrObj : symbolOrObj?.symbol;
+    if (!symbol) return;
+    const cleanSym = symbol.toUpperCase().trim();
+    const isWatched = this.watchlistState.items.some(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
     if (isWatched) {
       try {
-        await fetch(`/api/v1/watchlist/${encodeURIComponent(s.symbol)}`, { method: 'DELETE' });
-        this.watchlistState.items = this.watchlistState.items.filter(i => i.symbol !== s.symbol);
-        this.showToast(`${s.symbol} removed from Watchlist`, 'info');
+        await fetch(`/api/v1/watchlist/${encodeURIComponent(cleanSym)}`, { method: 'DELETE' });
+        this.watchlistState.items = this.watchlistState.items.filter(i => (i.symbol || '').toUpperCase().trim() !== cleanSym);
+        this.showToast(`${cleanSym} removed from Watchlist`, 'info');
       } catch (e) {
-        this.showToast(`Error removing ${s.symbol}: ${e.message}`, 'fail');
+        this.showToast(`Error removing ${cleanSym}: ${e.message}`, 'fail');
       }
     } else {
+      const s = (typeof symbolOrObj === 'object' && symbolOrObj?.score !== undefined)
+        ? symbolOrObj
+        : this.screenerState.stocks.find(item => item.symbol.toUpperCase() === cleanSym);
+      if (!s) return;
       const item = {
-        symbol: s.symbol,
-        name: s.name,
-        qualityTier: s.qualityTier,
+        symbol: cleanSym,
+        name: s.name || cleanSym,
+        qualityTier: s.qualityTier || (s.score >= 90 ? 'CATEGORY_A' : s.score >= 85 ? 'CATEGORY_B' : s.score >= 80 ? 'CATEGORY_C' : 'BELOW_80'),
         score: s.score,
         marketCapCategory: s.marketCapCategory,
         price: s.price,
@@ -2707,27 +2897,34 @@ const app = {
         });
         const data = await res.json();
         if (data.success && data.data) {
-          this.watchlistState.items.unshift(data.data);
-          this.showToast(`${s.symbol} added to Watchlist ⭐ (saved to DB)`, 'pass');
+          const idx = this.watchlistState.items.findIndex(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
+          if (idx >= 0) {
+            this.watchlistState.items[idx] = data.data;
+          } else {
+            this.watchlistState.items.unshift(data.data);
+          }
+          this.showToast(`${cleanSym} added to Watchlist ⭐ (saved to DB)`, 'pass');
         }
       } catch (e) {
-        this.showToast(`Error adding ${s.symbol}: ${e.message}`, 'fail');
+        this.showToast(`Error adding ${cleanSym}: ${e.message}`, 'fail');
       }
     }
     this.updateWatchlistNavBadge();
-    // Re-render screener to update star button states
+    this.renderWatchlistTable();
     this.fetchAndRenderScreenerStocks();
   },
 
   async removeFromWatchlist(symbol) {
+    if (!symbol) return;
+    const cleanSym = symbol.toUpperCase().trim();
     try {
-      await fetch(`/api/v1/watchlist/${encodeURIComponent(symbol)}`, { method: 'DELETE' });
-      this.watchlistState.items = this.watchlistState.items.filter(i => i.symbol !== symbol);
+      await fetch(`/api/v1/watchlist/${encodeURIComponent(cleanSym)}`, { method: 'DELETE' });
+      this.watchlistState.items = this.watchlistState.items.filter(i => (i.symbol || '').toUpperCase().trim() !== cleanSym);
       this.updateWatchlistNavBadge();
       this.renderWatchlistTable();
-      this.showToast(`${symbol} removed from Watchlist`, 'info');
+      this.showToast(`${cleanSym} removed from Watchlist`, 'info');
     } catch (e) {
-      this.showToast(`Error removing ${symbol}: ${e.message}`, 'fail');
+      this.showToast(`Error removing ${cleanSym}: ${e.message}`, 'fail');
     }
   },
 
@@ -2758,6 +2955,33 @@ const app = {
         this.renderWatchlistTable();
       }, 200);
     });
+
+    document.getElementById('refreshWatchlistBtn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('refreshWatchlistBtn');
+      if (btn) btn.innerHTML = '<span>⏳</span> Loading...';
+      await this.loadWatchlist();
+      if (btn) btn.innerHTML = '<span>🔄</span> Refresh';
+      this.showToast('Watchlist refreshed from database', 'info');
+    });
+
+    document.getElementById('analyzeAllWatchlistBtn')?.addEventListener('click', () => {
+      this.analyzeAllWatchlist();
+    });
+  },
+
+  resetWatchlistFilters() {
+    this.watchlistState.filterCap = 'ALL';
+    this.watchlistState.filterTier = 'ALL';
+    this.watchlistState.searchQuery = '';
+    const searchInput = document.getElementById('watchlistSearch');
+    if (searchInput) searchInput.value = '';
+    document.querySelectorAll('#watchlistCapPills .filter-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.wlcap === 'ALL');
+    });
+    document.querySelectorAll('#watchlistTierPills .filter-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.wltier === 'ALL');
+    });
+    this.renderWatchlistTable();
   },
 
   // Toggle Watchlist view mode between Cards and Table
@@ -2767,23 +2991,30 @@ const app = {
     const cardsContainer = document.getElementById('watchlistMobileCards');
     const tableWrapper = document.getElementById('watchlistTableWrapper');
 
-    cardsBtn?.addEventListener('click', () => {
-      cardsBtn.classList.add('active');
-      tableBtn?.classList.remove('active');
-      cardsContainer?.classList.remove('force-hidden');
-      cardsContainer?.classList.add('force-visible');
-      tableWrapper?.classList.remove('force-visible');
-      tableWrapper?.classList.add('force-hidden');
-    });
+    const setView = (mode) => {
+      if (mode === 'cards') {
+        cardsBtn?.classList.add('active');
+        tableBtn?.classList.remove('active');
+        cardsContainer?.classList.remove('force-hidden');
+        cardsContainer?.classList.add('force-visible');
+        tableWrapper?.classList.remove('force-visible');
+        tableWrapper?.classList.add('force-hidden');
+      } else {
+        tableBtn?.classList.add('active');
+        cardsBtn?.classList.remove('active');
+        tableWrapper?.classList.remove('force-hidden');
+        tableWrapper?.classList.add('force-visible');
+        cardsContainer?.classList.remove('force-visible');
+        cardsContainer?.classList.add('force-hidden');
+      }
+    };
 
-    tableBtn?.addEventListener('click', () => {
-      tableBtn.classList.add('active');
-      cardsBtn?.classList.remove('active');
-      tableWrapper?.classList.remove('force-hidden');
-      tableWrapper?.classList.add('force-visible');
-      cardsContainer?.classList.remove('force-visible');
-      cardsContainer?.classList.add('force-hidden');
-    });
+    cardsBtn?.addEventListener('click', () => setView('cards'));
+    tableBtn?.addEventListener('click', () => setView('table'));
+
+    // Set initial view according to active format or screen size
+    const isMobileMode = document.body.classList.contains('mobile-format-active') || (window.innerWidth <= 768 && !document.body.classList.contains('web-format-forced'));
+    setView(isMobileMode ? 'cards' : 'table');
   },
 
   renderWatchlistTable() {
@@ -2791,28 +3022,73 @@ const app = {
     const cardsContainer = document.getElementById('watchlistMobileCards');
     if (!tbody && !cardsContainer) return;
 
-    const all = this.watchlistState.items;
-    const tierMap = { 'CATEGORY_A': '🌟 A (90+)', 'CATEGORY_B': '🥈 B (85–90)', 'CATEGORY_C': '🥉 C (80–85)', 'BELOW': 'Below 80' };
+    const all = this.watchlistState.items || [];
+    const tierMap = {
+      'CATEGORY_A': '🌟 A (90+)',
+      'CATEGORY_B': '🥈 B (85–90)',
+      'CATEGORY_C': '🥉 C (80–85)',
+      'BELOW': 'Below 80',
+      'BELOW_80': 'Below 80'
+    };
     const capLabel = c => c === 'LARGE_CAP' ? 'Large' : c === 'MID_CAP' ? 'Mid' : c === 'SMALL_CAP' ? 'Small' : c === 'MICRO_CAP' ? 'Micro' : 'Unclassified';
 
-    // Update summary counts
-    document.getElementById('watchlistTotalCount').textContent = all.length;
-    document.getElementById('watchlistCatACount').textContent = all.filter(i => i.qualityTier === 'CATEGORY_A').length;
-    document.getElementById('watchlistCatBCount').textContent = all.filter(i => i.qualityTier === 'CATEGORY_B').length;
-    document.getElementById('watchlistCatCCount').textContent = all.filter(i => i.qualityTier === 'CATEGORY_C').length;
+    // Update summary counts (checking both explicit tier and score)
+    const totalCountEl = document.getElementById('watchlistTotalCount');
+    const catAEl = document.getElementById('watchlistCatACount');
+    const catBEl = document.getElementById('watchlistCatBCount');
+    const catCEl = document.getElementById('watchlistCatCCount');
+    if (totalCountEl) totalCountEl.textContent = all.length;
+    if (catAEl) catAEl.textContent = all.filter(i => i.qualityTier === 'CATEGORY_A' || (Number.isFinite(i.score) && i.score > 0 && i.score >= 90)).length;
+    if (catBEl) catBEl.textContent = all.filter(i => i.qualityTier === 'CATEGORY_B' || (Number.isFinite(i.score) && i.score > 0 && i.score >= 85 && i.score < 90)).length;
+    if (catCEl) catCEl.textContent = all.filter(i => i.qualityTier === 'CATEGORY_C' || (Number.isFinite(i.score) && i.score > 0 && i.score >= 80 && i.score < 85)).length;
 
     // Apply filters
-    let filtered = all.filter(i => {
-      if (this.watchlistState.filterCap !== 'ALL' && i.marketCapCategory !== this.watchlistState.filterCap) return false;
-      if (this.watchlistState.filterTier !== 'ALL' && i.qualityTier !== this.watchlistState.filterTier) return false;
-      if (this.watchlistState.searchQuery) {
-        const q = this.watchlistState.searchQuery;
-        if (!i.symbol.toLowerCase().includes(q) && !i.name.toLowerCase().includes(q)) return false;
+    const filterCap = this.watchlistState.filterCap;
+    const filterTier = this.watchlistState.filterTier;
+    const query = this.watchlistState.searchQuery;
+
+    const filtered = all.filter(i => {
+      // Market Cap filter
+      if (filterCap !== 'ALL') {
+        if (i.marketCapCategory !== filterCap) return false;
+      }
+
+      // Quality Tier filter
+      if (filterTier !== 'ALL') {
+        if (filterTier === 'CATEGORY_A') {
+          if (i.qualityTier !== 'CATEGORY_A' && !(Number.isFinite(i.score) && i.score > 0 && i.score >= 90)) return false;
+        } else if (filterTier === 'CATEGORY_B') {
+          if (i.qualityTier !== 'CATEGORY_B' && !(Number.isFinite(i.score) && i.score > 0 && i.score >= 85 && i.score < 90)) return false;
+        } else if (filterTier === 'CATEGORY_C') {
+          if (i.qualityTier !== 'CATEGORY_C' && !(Number.isFinite(i.score) && i.score > 0 && i.score >= 80 && i.score < 85)) return false;
+        } else if (filterTier === 'BELOW' || filterTier === 'BELOW_80') {
+          if (i.qualityTier !== 'BELOW' && i.qualityTier !== 'BELOW_80' && !(Number.isFinite(i.score) && i.score > 0 && i.score < 80)) return false;
+        } else if (filterTier === 'UNANALYZED') {
+          if ((Number.isFinite(i.score) && i.score > 0) || (i.qualityTier && i.qualityTier !== 'UNANALYZED')) return false;
+        }
+      }
+
+      // Search Query filter (with safe null-checks)
+      if (query) {
+        const sym = (i.symbol || '').toLowerCase();
+        const name = (i.name || '').toLowerCase();
+        if (!sym.includes(query) && !name.includes(query)) return false;
       }
       return true;
     });
 
-    document.getElementById('watchlistVisibleCount').textContent = filtered.length;
+    const visibleCountEl = document.getElementById('watchlistVisibleCount');
+    if (visibleCountEl) visibleCountEl.textContent = filtered.length;
+
+    // Helper to format values safely
+    const formatPrice = (p) => Number.isFinite(p) && p > 0 ? `₹${p.toLocaleString('en-IN')}` : '—';
+    const formatPercent = (v) => Number.isFinite(v) ? `${v}%` : '—';
+    const formatRatio = (r) => Number.isFinite(r) ? `${r}` : '—';
+    const formatDate = (d) => {
+      if (!d) return '—';
+      const parsed = new Date(d);
+      return !isNaN(parsed.getTime()) ? parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+    };
 
     // 1. Render Table View
     if (tbody) {
@@ -2822,30 +3098,42 @@ const app = {
             <div class="watchlist-empty-state">
               <div class="wl-empty-icon">⭐</div>
               <h3>${all.length === 0 ? 'Your Watchlist is Empty' : 'No Stocks Match Filters'}</h3>
-              <p style="font-size: 0.85rem; margin-top: 8px;">${all.length === 0 ? 'Go to Stock Analysis or the Screener and click ☆ to add stocks here.' : 'Try changing the cap or tier filter.'}</p>
+              <p style="font-size: 0.85rem; margin-top: 8px;">
+                ${all.length === 0 ? 'Go to Stock Analysis or the Screener and click ☆ to add stocks here, or click "Import CSV" above.' : 'Try changing the cap or tier filter.'}
+              </p>
+              ${all.length > 0 ? '<button class="secondary-btn" style="margin-top: 12px; font-size: 0.82rem;" onclick="app.resetWatchlistFilters()">🔄 Reset Filters</button>' : ''}
             </div>
           </td></tr>
         `;
       } else {
         tbody.innerHTML = filtered.map(s => {
-          const tierClass = s.qualityTier === 'CATEGORY_A' ? 'tier-a' : s.qualityTier === 'CATEGORY_B' ? 'tier-b' : s.qualityTier === 'CATEGORY_C' ? 'tier-c' : 'tier-below';
-          const scoreColor = s.score >= 90 ? '#fbbf24' : s.score >= 85 ? '#38bdf8' : s.score >= 80 ? '#34d399' : 'var(--text-secondary)';
-          const scoreText = Number.isFinite(s.score) ? s.score : 'Not analyzed';
-          const dateAdded = s.addedAt ? new Date(s.addedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+          const hasScore = Number.isFinite(s.score) && s.score > 0;
+          const isCatA = s.qualityTier === 'CATEGORY_A' || (hasScore && s.score >= 90);
+          const isCatB = s.qualityTier === 'CATEGORY_B' || (hasScore && s.score >= 85 && s.score < 90);
+          const isCatC = s.qualityTier === 'CATEGORY_C' || (hasScore && s.score >= 80 && s.score < 85);
+          const isBelow = s.qualityTier === 'BELOW' || s.qualityTier === 'BELOW_80' || (hasScore && s.score < 80);
+
+          const tierClass = isCatA ? 'tier-a' : isCatB ? 'tier-b' : isCatC ? 'tier-c' : isBelow ? 'tier-below' : 'info';
+          const tierLabel = isCatA ? '🌟 A (90+)' : isCatB ? '🥈 B (85–90)' : isCatC ? '🥉 C (80–85)' : isBelow ? 'Below 80' : 'Not analyzed';
+          const scoreColor = isCatA ? '#fbbf24' : isCatB ? '#38bdf8' : isCatC ? '#34d399' : isBelow ? '#f87171' : 'var(--text-secondary)';
+          const scoreText = hasScore ? `${s.score}` : '—';
+          const dateAdded = formatDate(s.addedAt);
+          const capText = capLabel(s.marketCapCategory);
+
           return `
             <tr>
               <td>
                 <div style="font-weight: 700; color: #fff; cursor: pointer;" onclick="app.analyzeStockSymbol('${s.symbol}')">${s.symbol}</div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.name}</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.name || s.symbol}</div>
               </td>
-              <td><span class="badge ${tierClass}">${tierMap[s.qualityTier] || 'Not analyzed'}</span></td>
-              <td><span style="font-size: 1.1rem; font-weight: 800; color: ${scoreColor};">${scoreText}${Number.isFinite(s.score) ? '<span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 400;">/100</span>' : ''}</span></td>
-              <td><span class="badge info" style="font-size: 0.7rem;">${capLabel(s.marketCapCategory)} Cap</span></td>
-              <td><strong style="color: #fff;">${Number.isFinite(s.price) ? `₹${s.price.toLocaleString('en-IN')}` : '—'}</strong></td>
-              <td><span style="color: ${s.roce >= 20 ? 'var(--accent-emerald)' : 'var(--text-primary)'}; font-weight: 600;">${Number.isFinite(s.roce) ? s.roce : '—'}%</span></td>
-              <td>${Number.isFinite(s.roe) ? s.roe : '—'}%</td>
-              <td>${Number.isFinite(s.pe) ? s.pe : '—'}</td>
-              <td>${Number.isFinite(s.debtEquity) ? s.debtEquity : '—'}</td>
+              <td><span class="badge ${tierClass}">${tierLabel}</span></td>
+              <td><span style="font-size: 1.1rem; font-weight: 800; color: ${scoreColor};">${scoreText}${hasScore ? '<span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 400;">/100</span>' : ''}</span></td>
+              <td><span class="badge info" style="font-size: 0.7rem;">${capText}${capText !== 'Unclassified' ? ' Cap' : ''}</span></td>
+              <td><strong style="color: #fff;">${formatPrice(s.price)}</strong></td>
+              <td><span style="color: ${Number.isFinite(s.roce) && s.roce >= 20 ? 'var(--accent-emerald)' : 'var(--text-primary)'}; font-weight: 600;">${formatPercent(s.roce)}</span></td>
+              <td>${formatPercent(s.roe)}</td>
+              <td>${formatRatio(s.pe)}</td>
+              <td>${formatRatio(s.debtEquity)}</td>
               <td style="font-size: 0.78rem; color: var(--text-secondary);">${dateAdded}</td>
               <td>
                 <div style="display: flex; gap: 6px;">
@@ -2870,16 +3158,27 @@ const app = {
           <div class="watchlist-empty-state">
             <div class="wl-empty-icon">⭐</div>
             <h3>${all.length === 0 ? 'Your Watchlist is Empty' : 'No Stocks Match Filters'}</h3>
-            <p style="font-size: 0.85rem; margin-top: 8px;">${all.length === 0 ? 'Go to Stock Analysis or the Screener and tap ☆ to add stocks here.' : 'Try changing the cap or tier filter.'}</p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">
+              ${all.length === 0 ? 'Go to Stock Analysis or the Screener and tap ☆ to add stocks here, or tap "Import CSV" above.' : 'Try changing the cap or tier filter.'}
+            </p>
+            ${all.length > 0 ? '<button class="secondary-btn" style="margin-top: 12px; font-size: 0.82rem;" onclick="app.resetWatchlistFilters()">🔄 Reset Filters</button>' : ''}
           </div>
         `;
       } else {
         cardsContainer.innerHTML = filtered.map(s => {
-          const tierClass = s.qualityTier === 'CATEGORY_A' ? 'tier-a' : s.qualityTier === 'CATEGORY_B' ? 'tier-b' : s.qualityTier === 'CATEGORY_C' ? 'tier-c' : 'tier-below';
-          const scoreColor = s.score >= 90 ? '#fbbf24' : s.score >= 85 ? '#38bdf8' : s.score >= 80 ? '#34d399' : 'var(--text-secondary)';
-          const scoreText = Number.isFinite(s.score) ? s.score : '—';
-          const dateAdded = s.addedAt ? new Date(s.addedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—';
-          const capName = capLabel(s.marketCapCategory);
+          const hasScore = Number.isFinite(s.score) && s.score > 0;
+          const isCatA = s.qualityTier === 'CATEGORY_A' || (hasScore && s.score >= 90);
+          const isCatB = s.qualityTier === 'CATEGORY_B' || (hasScore && s.score >= 85 && s.score < 90);
+          const isCatC = s.qualityTier === 'CATEGORY_C' || (hasScore && s.score >= 80 && s.score < 85);
+          const isBelow = s.qualityTier === 'BELOW' || s.qualityTier === 'BELOW_80' || (hasScore && s.score < 80);
+
+          const tierClass = isCatA ? 'tier-a' : isCatB ? 'tier-b' : isCatC ? 'tier-c' : isBelow ? 'tier-below' : 'info';
+          const tierLabel = isCatA ? '🌟 A (90+)' : isCatB ? '🥈 B (85–90)' : isCatC ? '🥉 C (80–85)' : isBelow ? 'Below 80' : 'Not analyzed';
+          const scoreColor = isCatA ? '#fbbf24' : isCatB ? '#38bdf8' : isCatC ? '#34d399' : isBelow ? '#f87171' : 'var(--text-secondary)';
+          const scoreBorderColor = isCatA ? 'rgba(251, 191, 36, 0.35)' : isCatB ? 'rgba(56, 189, 248, 0.35)' : isCatC ? 'rgba(52, 211, 153, 0.35)' : isBelow ? 'rgba(248, 113, 113, 0.35)' : 'rgba(255, 255, 255, 0.1)';
+          const scoreText = hasScore ? `${s.score}` : '—';
+          const dateAdded = formatDate(s.addedAt);
+          const capText = capLabel(s.marketCapCategory);
 
           return `
             <div class="wl-mobile-card">
@@ -2887,23 +3186,23 @@ const app = {
                 <div style="flex: 1; min-width: 0;">
                   <div class="wl-card-symbol" onclick="app.analyzeStockSymbol('${s.symbol}')">
                     <span>${s.symbol}</span>
-                    <span class="badge ${tierClass}" style="font-size: 0.68rem; margin-left: 6px;">${tierMap[s.qualityTier] || 'Not analyzed'}</span>
+                    <span class="badge ${tierClass}" style="font-size: 0.68rem; margin-left: 6px;">${tierLabel}</span>
                   </div>
-                  <div class="wl-card-name">${s.name}</div>
+                  <div class="wl-card-name">${s.name || s.symbol}</div>
                 </div>
-                <div class="wl-card-score" style="border-color: ${scoreColor}44;">
+                <div class="wl-card-score" style="border-color: ${scoreBorderColor};">
                   <span style="font-size: 1.25rem; font-weight: 800; color: ${scoreColor};">${scoreText}</span>
-                  ${Number.isFinite(s.score) ? '<span style="font-size: 0.62rem; color: var(--text-muted); display: block;">/100</span>' : ''}
+                  ${hasScore ? '<span style="font-size: 0.62rem; color: var(--text-muted); display: block;">/100</span>' : ''}
                 </div>
               </div>
 
               <div class="wl-card-price-row">
                 <div>
                   <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">Current Price</span>
-                  <span class="wl-card-price">${Number.isFinite(s.price) ? `₹${s.price.toLocaleString('en-IN')}` : '—'}</span>
+                  <span class="wl-card-price">${formatPrice(s.price)}</span>
                 </div>
                 <div style="text-align: right;">
-                  <span class="badge info" style="font-size: 0.72rem;">${capName} Cap</span>
+                  <span class="badge info" style="font-size: 0.72rem;">${capText}${capText !== 'Unclassified' ? ' Cap' : ''}</span>
                   <span style="font-size: 0.68rem; color: var(--text-muted); display: block; margin-top: 2px;">Added ${dateAdded}</span>
                 </div>
               </div>
@@ -2911,19 +3210,19 @@ const app = {
               <div class="wl-card-stats-grid">
                 <div class="wl-stat-pill">
                   <span class="wl-stat-k">ROCE</span>
-                  <span class="wl-stat-v" style="color: ${s.roce >= 20 ? 'var(--accent-emerald)' : '#fff'};">${s.roce || '—'}%</span>
+                  <span class="wl-stat-v" style="color: ${Number.isFinite(s.roce) && s.roce >= 20 ? 'var(--accent-emerald)' : '#fff'};">${formatPercent(s.roce)}</span>
                 </div>
                 <div class="wl-stat-pill">
                   <span class="wl-stat-k">ROE</span>
-                  <span class="wl-stat-v">${s.roe || '—'}%</span>
+                  <span class="wl-stat-v">${formatPercent(s.roe)}</span>
                 </div>
                 <div class="wl-stat-pill">
                   <span class="wl-stat-k">P/E</span>
-                  <span class="wl-stat-v">${s.pe || '—'}</span>
+                  <span class="wl-stat-v">${formatRatio(s.pe)}</span>
                 </div>
                 <div class="wl-stat-pill">
                   <span class="wl-stat-k">D/E</span>
-                  <span class="wl-stat-v">${s.debtEquity || '—'}</span>
+                  <span class="wl-stat-v">${formatRatio(s.debtEquity)}</span>
                 </div>
               </div>
 
@@ -3476,10 +3775,10 @@ const app = {
           <td>
             <div style="display:flex; gap:5px;">
               <button class="primary-btn" style="padding:4px 8px; font-size:0.72rem;" onclick="app.analyzeStockSymbol('${s.symbol}')">Inspect</button>
-              <button class="secondary-btn" style="padding:4px 8px; font-size:0.72rem; ${isWatched ? 'color:var(--accent-amber);' : ''}"
-                onclick="app.toggleWatchlistFromIndexScanner(${JSON.stringify(s).replace(/"/g, '&quot;')})"
-                title="${isWatched ? 'Remove from Watchlist' : 'Add to Watchlist'}">
-                ${isWatched ? '⭐' : '☆'}
+              <button class="secondary-btn" style="padding:4px 8px; font-size:0.72rem; ${this.watchlistState.items.some(i => (i.symbol || '').toUpperCase() === s.symbol.toUpperCase()) ? 'color:var(--accent-amber);' : ''}"
+                onclick="app.toggleWatchlistFromIndexScanner('${s.symbol}')"
+                title="${this.watchlistState.items.some(i => (i.symbol || '').toUpperCase() === s.symbol.toUpperCase()) ? 'Remove from Watchlist' : 'Add to Watchlist'}">
+                ${this.watchlistState.items.some(i => (i.symbol || '').toUpperCase() === s.symbol.toUpperCase()) ? '⭐' : '☆'}
               </button>
             </div>
           </td>
@@ -3489,21 +3788,28 @@ const app = {
   },
 
   // Toggle watchlist from Index Scanner (same pattern as toggleWatchlistFromScreener)
-  async toggleWatchlistFromIndexScanner(s) {
-    const isWatched = this.watchlistState.items.some(i => i.symbol === s.symbol);
+  async toggleWatchlistFromIndexScanner(symbolOrObj) {
+    const symbol = typeof symbolOrObj === 'string' ? symbolOrObj : symbolOrObj?.symbol;
+    if (!symbol) return;
+    const cleanSym = symbol.toUpperCase().trim();
+    const isWatched = this.watchlistState.items.some(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
     if (isWatched) {
       try {
-        await fetch(`/api/v1/watchlist/${encodeURIComponent(s.symbol)}`, { method: 'DELETE' });
-        this.watchlistState.items = this.watchlistState.items.filter(i => i.symbol !== s.symbol);
-        this.showToast(`${s.symbol} removed from Watchlist`, 'info');
+        await fetch(`/api/v1/watchlist/${encodeURIComponent(cleanSym)}`, { method: 'DELETE' });
+        this.watchlistState.items = this.watchlistState.items.filter(i => (i.symbol || '').toUpperCase().trim() !== cleanSym);
+        this.showToast(`${cleanSym} removed from Watchlist`, 'info');
       } catch (e) {
-        this.showToast(`Error removing ${s.symbol}: ${e.message}`, 'fail');
+        this.showToast(`Error removing ${cleanSym}: ${e.message}`, 'fail');
       }
     } else {
+      const s = (typeof symbolOrObj === 'object' && symbolOrObj?.score !== undefined)
+        ? symbolOrObj
+        : this.indexScannerState.results.find(item => item.symbol.toUpperCase() === cleanSym);
+      if (!s) return;
       const item = {
-        symbol: s.symbol,
-        name: s.name,
-        qualityTier: s.qualityTier,
+        symbol: cleanSym,
+        name: s.name || cleanSym,
+        qualityTier: s.qualityTier || (s.score >= 90 ? 'CATEGORY_A' : s.score >= 85 ? 'CATEGORY_B' : s.score >= 80 ? 'CATEGORY_C' : 'BELOW_80'),
         score: s.score,
         marketCapCategory: s.marketCapCategory,
         price: s.price,
@@ -3521,14 +3827,20 @@ const app = {
         });
         const data = await res.json();
         if (data.success && data.data) {
-          this.watchlistState.items.unshift(data.data);
-          this.showToast(`${s.symbol} added to Watchlist ⭐`, 'pass');
+          const idx = this.watchlistState.items.findIndex(i => (i.symbol || '').toUpperCase().trim() === cleanSym);
+          if (idx >= 0) {
+            this.watchlistState.items[idx] = data.data;
+          } else {
+            this.watchlistState.items.unshift(data.data);
+          }
+          this.showToast(`${cleanSym} added to Watchlist ⭐ (saved to DB)`, 'pass');
         }
       } catch (e) {
-        this.showToast(`Error adding ${s.symbol}: ${e.message}`, 'fail');
+        this.showToast(`Error adding ${cleanSym}: ${e.message}`, 'fail');
       }
     }
     this.updateWatchlistNavBadge();
+    this.renderWatchlistTable();
     this.renderIndexScanResults();
   },
 

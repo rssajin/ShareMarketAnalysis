@@ -63,22 +63,22 @@ export class WatchlistService {
         @price, @roce, @roe, @pe, @debt_equity, @added_at, @updated_at
       )
       ON CONFLICT(symbol) DO UPDATE SET
-        name = excluded.name,
-        score = excluded.score,
-        quality_tier = excluded.quality_tier,
-        market_cap = excluded.market_cap,
-        price = excluded.price,
-        roce = excluded.roce,
-        roe = excluded.roe,
-        pe = excluded.pe,
-        debt_equity = excluded.debt_equity,
+        name = COALESCE(excluded.name, watchlist.name),
+        score = CASE WHEN excluded.score IS NOT NULL AND excluded.score > 0 THEN excluded.score ELSE watchlist.score END,
+        quality_tier = CASE WHEN excluded.score IS NOT NULL AND excluded.score > 0 THEN excluded.quality_tier ELSE COALESCE(watchlist.quality_tier, excluded.quality_tier) END,
+        market_cap = COALESCE(excluded.market_cap, watchlist.market_cap),
+        price = COALESCE(excluded.price, watchlist.price),
+        roce = COALESCE(excluded.roce, watchlist.roce),
+        roe = COALESCE(excluded.roe, watchlist.roe),
+        pe = COALESCE(excluded.pe, watchlist.pe),
+        debt_equity = COALESCE(excluded.debt_equity, watchlist.debt_equity),
         updated_at = excluded.updated_at
     `);
 
     stmt.run({
       symbol: item.symbol.toUpperCase().trim(),
       name: item.name,
-      score: item.score ?? null,
+      score: (item.score != null && item.score > 0) ? item.score : null,
       quality_tier: item.qualityTier ?? null,
       market_cap: item.marketCapCategory ?? null,
       price: item.price ?? null,
@@ -123,10 +123,12 @@ export class WatchlistService {
         else imported++;
 
         const name = row.company_name || row.name || cleanSymbol;
-        const rawCap = (row.market_cap_type || row.marketCapCategory || '').toUpperCase().replace(/[\s-]/g, '_');
-        const marketCapCategory = ['LARGE_CAP', 'MID_CAP', 'SMALL_CAP', 'MICRO_CAP'].find(category =>
-          rawCap === category || rawCap === category.replace('_CAP', '')
-        ) || null;
+        const cleanCap = (row.market_cap_type || row.marketCapCategory || '').toUpperCase().replace(/[\s\-_]/g, '');
+        const marketCapCategory = (['LARGE_CAP', 'MID_CAP', 'SMALL_CAP', 'MICRO_CAP'] as const).find(category => {
+          const norm = category.replace(/_/g, '');
+          const shortNorm = category.replace(/_CAP/g, '');
+          return cleanCap === norm || cleanCap === shortNorm;
+        }) || null;
 
         const stmt = db.prepare(`
           INSERT INTO watchlist (

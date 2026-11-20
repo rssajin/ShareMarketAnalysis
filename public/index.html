@@ -547,6 +547,7 @@
                   <button class="filter-pill" data-wlcap="LARGE_CAP">Large Cap</button>
                   <button class="filter-pill" data-wlcap="MID_CAP">Mid Cap</button>
                   <button class="filter-pill" data-wlcap="SMALL_CAP">Small Cap</button>
+                  <button class="filter-pill" data-wlcap="MICRO_CAP">Micro Cap</button>
                 </div>
               </div>
               <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -556,11 +557,18 @@
                   <button class="filter-pill tier-a" data-wltier="CATEGORY_A">🌟 A (90+)</button>
                   <button class="filter-pill tier-b" data-wltier="CATEGORY_B">🥈 B (85–90)</button>
                   <button class="filter-pill tier-c" data-wltier="CATEGORY_C">🥉 C (80–85)</button>
-                  <button class="filter-pill" data-wltier="BELOW">Below 80</button>
+                  <button class="filter-pill tier-below" data-wltier="BELOW">Below 80</button>
+                  <button class="filter-pill" data-wltier="UNANALYZED">Not Analyzed</button>
                 </div>
               </div>
               <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="watchlistSearch" class="form-input" placeholder="Filter by name or symbol..." style="width: 220px; padding: 6px 12px; font-size: 0.85rem;">
+                <button class="secondary-btn" id="refreshWatchlistBtn" style="padding: 6px 14px; font-size: 0.82rem; font-weight: 600;" title="Reload watchlist from database">
+                  <span>🔄</span> Refresh
+                </button>
+                <button class="primary-btn" id="analyzeAllWatchlistBtn" style="padding: 6px 14px; font-size: 0.82rem; font-weight: 600; background: linear-gradient(135deg, #6366f1, #8b5cf6);" title="Fetch latest scores for all watchlist stocks">
+                  <span>⚡</span> Analyze All
+                </button>
                 <button class="primary-btn" id="openImportCsvModalBtn" style="padding: 6px 14px; font-size: 0.82rem; font-weight: 600;">
                   <span>📥</span> Import CSV
                 </button>
@@ -576,9 +584,21 @@
                 <p style="font-size: 0.8rem; color: var(--text-secondary);">Saved stocks for monitoring. Click Analyze for the full 100-point breakdown.</p>
               </div>
               <div class="watchlist-view-toggle" id="watchlistLayoutToggle">
-                <button class="wl-layout-btn active" id="wlViewCardsBtn" title="Touch Cards View">📱 Cards</button>
+                <button class="wl-layout-btn" id="wlViewCardsBtn" title="Touch Cards View">📱 Cards</button>
                 <button class="wl-layout-btn" id="wlViewTableBtn" title="Table Grid View">📋 Table</button>
               </div>
+            </div>
+
+            <!-- Analyze-All Progress Banner (hidden by default) -->
+            <div id="analyzeAllProgress" style="display:none; margin-bottom: 16px; padding: 14px 16px; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.35); border-radius: var(--radius-sm);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
+                <span style="font-size:0.85rem; font-weight:600; color:#a5b4fc;" id="analyzeAllStatusText">⚡ Analyzing watchlist stocks...</span>
+                <span style="font-size:0.82rem; color:var(--text-secondary);" id="analyzeAllCountText">0 / 0</span>
+              </div>
+              <div style="background:rgba(255,255,255,0.08); border-radius:999px; height:7px; overflow:hidden;">
+                <div id="analyzeAllProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#6366f1,#8b5cf6); border-radius:999px; transition:width 0.4s ease;"></div>
+              </div>
+              <div id="analyzeAllCurrentSymbol" style="font-size:0.76rem; color:var(--text-muted); margin-top:6px;"></div>
             </div>
 
             <!-- Mobile Touch Cards List -->
@@ -1405,6 +1425,6 @@
     <span class="fab-label">AI Chat</span>
   </button>
 
-  <script src="app.js?v=20261021-opportunities-rule-rebuild"></script>
+  <script src="app.js?v=20261120-analyze-all"></script>
 </body>
 </html>

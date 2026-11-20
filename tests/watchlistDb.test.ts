@@ -243,4 +243,53 @@ describe('WatchlistService SQLite Database Persistence (Step 3)', () => {
     expect(updated?.name).toBe('Lupin Limited');
     expect(updated?.score).toBeUndefined();
   });
+
+  it('correctly normalizes compact market cap strings like LargeCap, MidCap, SmallCap, MicroCap', () => {
+    const res = WatchlistService.importBatch([
+      { symbol: 'STK1', company_name: 'Stock One', market_cap_type: 'LargeCap' },
+      { symbol: 'STK2', company_name: 'Stock Two', market_cap_type: 'MidCap' },
+      { symbol: 'STK3', company_name: 'Stock Three', market_cap_type: 'SmallCap' },
+      { symbol: 'STK4', company_name: 'Stock Four', market_cap_type: 'MicroCap' },
+      { symbol: 'STK5', company_name: 'Stock Five', market_cap_type: 'Micro' }
+    ]);
+
+    expect(res.imported).toBe(5);
+    const all = WatchlistService.getAll();
+    expect(all.find(s => s.symbol === 'STK1')?.marketCapCategory).toBe('LARGE_CAP');
+    expect(all.find(s => s.symbol === 'STK2')?.marketCapCategory).toBe('MID_CAP');
+    expect(all.find(s => s.symbol === 'STK3')?.marketCapCategory).toBe('SMALL_CAP');
+    expect(all.find(s => s.symbol === 'STK4')?.marketCapCategory).toBe('MICRO_CAP');
+    expect(all.find(s => s.symbol === 'STK5')?.marketCapCategory).toBe('MICRO_CAP');
+  });
+
+  it('preserves existing scores when WatchlistService.add updates with partial data', () => {
+    WatchlistService.add({
+      symbol: 'TCS',
+      name: 'Tata Consultancy Services Ltd',
+      qualityTier: 'CATEGORY_A',
+      score: 94,
+      marketCapCategory: 'LARGE_CAP',
+      price: 3300,
+      roce: 29,
+      roe: 25,
+      pe: 23,
+      debtEquity: 0.04,
+      addedAt: new Date().toISOString()
+    });
+
+    // Partial update (e.g. updating name without resupplying score/price)
+    WatchlistService.add({
+      symbol: 'TCS',
+      name: 'Tata Consultancy Services',
+      addedAt: new Date().toISOString()
+    });
+
+    const items = WatchlistService.getAll();
+    expect(items.length).toBe(1);
+    expect(items[0].name).toBe('Tata Consultancy Services');
+    expect(items[0].score).toBe(94);
+    expect(items[0].price).toBe(3300);
+    expect(items[0].qualityTier).toBe('CATEGORY_A');
+    expect(items[0].marketCapCategory).toBe('LARGE_CAP');
+  });
 });
